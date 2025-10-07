@@ -32,8 +32,10 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const getVacationsForDay = (date) =>
-    vacations.filter(v => v.date === date.toISOString().split("T")[0]);
+  const getVacationsForDay = (date) => {
+    const str = date.toISOString().split("T")[0];
+    return vacations.filter(v => v.date === str);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,15 +53,14 @@ export default function App() {
   };
 
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("この記録を削除しますか？");
-    if (!confirmDelete) return;
+    if (!window.confirm("この記録を削除しますか？")) return;
     await deleteDoc(doc(db, "vacations", id));
   };
 
-  // 日付を「YYYY年M月D日」に変換
+  // 日付を必ず「YYYY年M月D日」で表示
   const formatDateJP = (date) => {
     const year = date.getFullYear();
-    const month = date.getMonth() + 1; // 0始まりなので +1
+    const month = date.getMonth() + 1;
     const day = date.getDate();
     return `${year}年${month}月${day}日`;
   };
@@ -69,7 +70,7 @@ export default function App() {
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2rem", padding: "1rem" }}>
         <Calendar
-          onChange={(date) => setSelectedDate(date)}
+          onChange={setSelectedDate}
           value={selectedDate}
         />
 
