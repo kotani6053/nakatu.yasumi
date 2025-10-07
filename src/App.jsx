@@ -73,76 +73,135 @@ export default function App() {
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2rem", padding: "1rem" }}>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "2rem",
+          padding: "1rem"
+        }}
+      >
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
-          formatDay={(locale, date) => date.getDate()} 
+          formatDay={(locale, date) => date.getDate()} // ← 「1日」を「1」に変更
         />
 
-        <div style={{ flex: 1, width: "100%", maxWidth: "600px" }}>
-          <h3>
-            {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日 の予定
-          </h3>
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            maxWidth: "900px",
+            gap: "2rem",
+            flexWrap: "wrap"
+          }}
+        >
+          {/* 左側：選択日＋登録フォーム */}
+          <div style={{ flex: 1, minWidth: "300px" }}>
+            <h3>
+              {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月
+              {selectedDate.getDate()}日 の予定
+            </h3>
 
-          <ul>
-            {getVacationsForDay(selectedDate).map(v => (
-              <li key={v.id}>
-                {v.name} {v.type}{" "}
-                {v.type === "時間単位有給" ? `${v.startTime}〜${v.endTime}` : ""} ({v.reason})
-                <button
-                  onClick={() => handleDelete(v.id)}
-                  style={{ marginLeft: "0.5rem", color: "red" }}
-                >
-                  削除
-                </button>
-              </li>
-            ))}
-          </ul>
+            <ul>
+              {getVacationsForDay(selectedDate).map(v => (
+                <li key={v.id}>
+                  {v.name} {v.type}{" "}
+                  {v.type === "時間単位有給"
+                    ? `${v.startTime}〜${v.endTime}`
+                    : ""}
+                  {" "}({v.reason})
+                  <button
+                    onClick={() => handleDelete(v.id)}
+                    style={{ marginLeft: "0.5rem", color: "red" }}
+                  >
+                    削除
+                  </button>
+                </li>
+              ))}
+            </ul>
 
-          <h4>新規入力</h4>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            <input
-              placeholder="名前"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-            <select
-              value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value })}
-              required
+            <h4>新規入力</h4>
+            <form
+              onSubmit={handleSubmit}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem"
+              }}
             >
-              <option value="">選択してください</option>
-              <option value="有給休暇">有給休暇</option>
-              <option value="時間単位有給">時間単位有給</option>
-              <option value="欠勤">欠勤</option>
-            </select>
-            <input
-              placeholder="理由"
-              value={formData.reason}
-              onChange={e => setFormData({ ...formData, reason: e.target.value })}
-            />
+              <input
+                placeholder="名前"
+                value={formData.name}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                required
+              />
+              <select
+                value={formData.type}
+                onChange={e =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                required
+              >
+                <option value="">選択してください</option>
+                <option value="有給休暇">有給休暇</option>
+                <option value="時間単位有給">時間単位有給</option>
+                <option value="欠勤">欠勤</option>
+              </select>
+              <input
+                placeholder="理由"
+                value={formData.reason}
+                onChange={e =>
+                  setFormData({ ...formData, reason: e.target.value })
+                }
+              />
 
-            {formData.type === "時間単位有給" && (
-              <>
-                <input
-                  type="time"
-                  value={formData.startTime}
-                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                  required
-                />
-                <input
-                  type="time"
-                  value={formData.endTime}
-                  onChange={e => setFormData({ ...formData, endTime: e.target.value })}
-                  required
-                />
-              </>
-            )}
+              {formData.type === "時間単位有給" && (
+                <>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={e =>
+                      setFormData({ ...formData, startTime: e.target.value })
+                    }
+                    required
+                  />
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={e =>
+                      setFormData({ ...formData, endTime: e.target.value })
+                    }
+                    required
+                  />
+                </>
+              )}
 
-            <button type="submit">登録</button>
-          </form>
+              <button type="submit">登録</button>
+            </form>
+          </div>
+
+          {/* 右側：全休暇一覧（常に表示） */}
+          <div style={{ flex: 1, minWidth: "300px" }}>
+            <h3>全休暇一覧（早い日付順）</h3>
+            <ul>
+              {[...vacations]
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .map(v => (
+                  <li key={v.id}>
+                    {v.date}：{v.name} {v.type}
+                    {v.type === "時間単位有給"
+                      ? ` ${v.startTime}〜${v.endTime}`
+                      : ""}{" "}
+                    ({v.reason})
+                  </li>
+                ))}
+            </ul>
+          </div>
         </div>
       </div>
     </>
