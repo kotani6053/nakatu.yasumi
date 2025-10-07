@@ -77,6 +77,7 @@ export default function App() {
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
+          formatDay={(locale, date) => date.getDate()} 
         />
 
         <div style={{ flex: 1, width: "100%", maxWidth: "600px" }}>
