@@ -114,7 +114,7 @@ export default function App() {
 
           {/* 全休暇一覧 */}
           <div style={{ flex: 1, minWidth: "300px" }}>
-            <h3>全休暇一覧（早い日付順）</h3>
+            <h3>全休暇一覧</h3>
             <ul>
               {[...vacations]
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
