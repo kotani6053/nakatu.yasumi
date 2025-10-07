@@ -75,6 +75,13 @@ export default function App() {
     return `${h}:${m}`;
   });
 
+  // タイプ別文字色
+  const typeColor = (type) => {
+    if (type === "時間単位有給") return "blue";
+    if (type === "欠勤") return "red";
+    return "black";
+  };
+
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
@@ -98,7 +105,7 @@ export default function App() {
             </h3>
             <ul>
               {getVacationsForDay(selectedDate).map(v => (
-                <li key={v.id}>
+                <li key={v.id} style={{ color: typeColor(v.type) }}>
                   {v.name} {v.type}{" "}
                   {v.type === "時間単位有給" ? `${v.startTime}〜${v.endTime}` : ""} ({v.reason})
                   <button
@@ -114,12 +121,12 @@ export default function App() {
 
           {/* 全休暇一覧 */}
           <div style={{ flex: 1, minWidth: "300px" }}>
-            <h3>全休暇一覧</h3>
+            <h3>全休暇一覧（早い日付順）</h3>
             <ul>
               {[...vacations]
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
                 .map(v => (
-                  <li key={v.id}>
+                  <li key={v.id} style={{ color: typeColor(v.type) }}>
                     {v.date}：{v.name} {v.type}
                     {v.type === "時間単位有給" ? ` ${v.startTime}〜${v.endTime}` : ""} ({v.reason})
                   </li>
@@ -132,30 +139,35 @@ export default function App() {
         <div style={{ width: "100%", maxWidth: "600px" }}>
           <h4>新規入力</h4>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
-            <input
-              placeholder="名前"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              required
-              style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
-            />
-            <select
-              value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value })}
-              required
-              style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
-            >
-              <option value="">選択してください</option>
-              <option value="有給休暇">有給休暇</option>
-              <option value="時間単位有給">時間単位有給</option>
-              <option value="欠勤">欠勤</option>
-            </select>
-            <input
-              placeholder="理由"
-              value={formData.reason}
-              onChange={e => setFormData({ ...formData, reason: e.target.value })}
-              style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
-            />
+            {/* 横幅統一 */}
+            {["name", "type", "reason"].map((field) => {
+              if (field === "type") {
+                return (
+                  <select
+                    key={field}
+                    value={formData.type}
+                    onChange={e => setFormData({ ...formData, type: e.target.value })}
+                    required
+                    style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
+                  >
+                    <option value="">選択してください</option>
+                    <option value="有給休暇">有給休暇</option>
+                    <option value="時間単位有給">時間単位有給</option>
+                    <option value="欠勤">欠勤</option>
+                  </select>
+                );
+              }
+              return (
+                <input
+                  key={field}
+                  placeholder={field === "name" ? "名前" : "理由"}
+                  value={formData[field]}
+                  onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                  style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
+                  required={field === "name"}
+                />
+              );
+            })}
 
             {formData.type === "時間単位有給" && (
               <>
