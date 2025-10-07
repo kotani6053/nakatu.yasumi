@@ -33,7 +33,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // YYYY-MM-DD形式に統一
   const formatDate = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -143,11 +142,6 @@ export default function App() {
 
             <button type="submit">登録</button>
           </form>
-
-          {/* デバッグ用: Firestoreのデータ確認 */}
-          <pre style={{ fontSize: "12px", marginTop: "1rem" }}>
-            {JSON.stringify(vacations, null, 2)}
-          </pre>
         </div>
       </div>
     </>
