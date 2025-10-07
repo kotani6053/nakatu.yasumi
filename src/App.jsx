@@ -56,6 +56,15 @@ export default function App() {
     await deleteDoc(doc(db, "vacations", id));
   };
 
+  // 日付を日本語表記にする関数
+  const formatDateJP = (date) => {
+    return new Intl.DateTimeFormat("ja-JP", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }).format(date);
+  };
+
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
@@ -69,7 +78,7 @@ export default function App() {
         />
 
         <div style={{ flex: 1 }}>
-          <h3>{selectedDate.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })} の予定</h3>
+          <h3>{formatDateJP(selectedDate)} の予定</h3>
           <ul>
             {getVacationsForDay(selectedDate).map(v => (
               <li key={v.id}>
