@@ -1,15 +1,9 @@
-import { build } from "vite";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-async function runBuild() {
-  try {
-    await build({
-      configFile: "./vite.config.js" // 必要なら指定
-    });
-    console.log("Vite ビルド完了 ✅");
-  } catch (err) {
-    console.error("Vite ビルド中にエラー:", err);
-    process.exit(1);
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173
   }
-}
-
-runBuild();
+});
