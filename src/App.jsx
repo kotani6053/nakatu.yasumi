@@ -56,13 +56,14 @@ export default function App() {
     await deleteDoc(doc(db, "vacations", id));
   };
 
-  // 日付を日本語表記にする関数
+  // 日付を必ず Date 型にして日本語表記する関数
   const formatDateJP = (date) => {
+    const d = date instanceof Date ? date : new Date(date);
     return new Intl.DateTimeFormat("ja-JP", {
       year: "numeric",
       month: "long",
       day: "numeric"
-    }).format(date);
+    }).format(d);
   };
 
   return (
