@@ -23,7 +23,7 @@ export default function App() {
     endTime: ""
   });
 
-  // Firebase からデータ取得
+  // Firestoreからリアルタイム取得
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -33,43 +33,35 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 選択日ごとの休暇データ
-  const getVacationsForDay = (date) => {
-    const str = date.toISOString().split("T")[0];
-    return vacations.filter(v => v.date === str);
-  };
+  const getVacationsForDay = (date) =>
+    vacations.filter(v => v.date === date.toISOString().split("T")[0]);
 
-  // 日付を「YYYY年M月D日」に変換
-  const formatDateJP = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${year}年${month}月${day}日`;
-  };
-
-  // 入力フォーム送信
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.type) return;
 
-    await addDoc(collection(db, "vacations"), {
-      ...formData,
-      date: selectedDate.toISOString().split("T")[0],
-      startTime: formData.type === "時間単位有給" ? formData.startTime : null,
-      endTime: formData.type === "時間単位有給" ? formData.endTime : null,
-      createdAt: new Date()
-    });
-
-    setFormData({ name: "", type: "", reason: "", startTime: "", endTime: "" });
+    try {
+      await addDoc(collection(db, "vacations"), {
+        ...formData,
+        date: selectedDate.toISOString().split("T")[0],
+        startTime: formData.type === "時間単位有給" ? formData.startTime : null,
+        endTime: formData.type === "時間単位有給" ? formData.endTime : null,
+        createdAt: new Date()
+      });
+      setFormData({ name: "", type: "", reason: "", startTime: "", endTime: "" });
+    } catch (err) {
+      console.error("Firestoreへの保存に失敗:", err);
+    }
   };
 
-  // 削除処理
   const handleDelete = async (id) => {
     if (!window.confirm("この記録を削除しますか？")) return;
-    await deleteDoc(doc(db, "vacations", id));
+    try {
+      await deleteDoc(doc(db, "vacations", id));
+    } catch (err) {
+      console.error("削除に失敗:", err);
+    }
   };
-
-  const displayDate = formatDateJP(selectedDate);
 
   return (
     <>
@@ -78,10 +70,11 @@ export default function App() {
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
+          tileContent={({ date }) => date.getDate() === 1 ? null : undefined}
         />
 
         <div style={{ flex: 1, width: "100%", maxWidth: "600px" }}>
-          <h3>{displayDate} の予定</h3>
+          <h3>{selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日 の予定</h3>
           <ul>
             {getVacationsForDay(selectedDate).map(v => (
               <li key={v.id}>
@@ -102,12 +95,12 @@ export default function App() {
             <input
               placeholder="名前"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({...formData, name: e.target.value})}
               required
             />
             <select
               value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value })}
+              onChange={e => setFormData({...formData, type: e.target.value})}
               required
             >
               <option value="">選択してください</option>
@@ -118,7 +111,7 @@ export default function App() {
             <input
               placeholder="理由"
               value={formData.reason}
-              onChange={e => setFormData({ ...formData, reason: e.target.value })}
+              onChange={e => setFormData({...formData, reason: e.target.value})}
             />
 
             {formData.type === "時間単位有給" && (
@@ -126,13 +119,13 @@ export default function App() {
                 <input
                   type="time"
                   value={formData.startTime}
-                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                  onChange={e => setFormData({...formData, startTime: e.target.value})}
                   required
                 />
                 <input
                   type="time"
                   value={formData.endTime}
-                  onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                  onChange={e => setFormData({...formData, endTime: e.target.value})}
                   required
                 />
               </>
