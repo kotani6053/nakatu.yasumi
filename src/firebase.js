@@ -3,12 +3,12 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAYvLIOLzFfv91GI_KdS7FceH6VfMGWK2E",
+  authDomain: "nakatu-yasumi.firebaseapp.com",
+  projectId: "nakatu-yasumi",
+  storageBucket: "nakatu-yasumi.firebasestorage.app",
+  messagingSenderId: "718586330143",
+  appId: "1:718586330143:web:47a439734182f5ac3ce92a"
 };
 
 const app = initializeApp(firebaseConfig);
