@@ -23,7 +23,7 @@ export default function App() {
     endTime: ""
   });
 
-  // Firestore からリアルタイムで取得
+  // Firestoreからリアルタイム取得
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -33,7 +33,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // YYYY-MM-DD形式で日付を比較
+  // YYYY-MM-DD形式に統一
   const formatDate = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -78,13 +78,13 @@ export default function App() {
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
-          tileContent={({ date }) => date.getDate() === 1 ? null : undefined}
         />
 
         <div style={{ flex: 1, width: "100%", maxWidth: "600px" }}>
           <h3>
             {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日 の予定
           </h3>
+
           <ul>
             {getVacationsForDay(selectedDate).map(v => (
               <li key={v.id}>
@@ -143,6 +143,11 @@ export default function App() {
 
             <button type="submit">登録</button>
           </form>
+
+          {/* デバッグ用: Firestoreのデータ確認 */}
+          <pre style={{ fontSize: "12px", marginTop: "1rem" }}>
+            {JSON.stringify(vacations, null, 2)}
+          </pre>
         </div>
       </div>
     </>
