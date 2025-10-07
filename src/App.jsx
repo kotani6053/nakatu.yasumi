@@ -70,6 +70,13 @@ export default function App() {
     }
   };
 
+  // 10分刻みの時間選択リスト
+  const timeOptions = Array.from({ length: 24*6 }, (_, i) => {
+    const h = String(Math.floor(i/6)).padStart(2,'0');
+    const m = String((i%6)*10).padStart(2,'0');
+    return `${h}:${m}`;
+  });
+
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
@@ -137,21 +144,13 @@ export default function App() {
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 required
-                style={{
-                  fontSize: "1.1rem",
-                  padding: "0.4rem",
-                  width: "100%"
-                }}
+                style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
               />
               <select
                 value={formData.type}
                 onChange={e => setFormData({ ...formData, type: e.target.value })}
                 required
-                style={{
-                  fontSize: "1.1rem",
-                  padding: "0.4rem",
-                  width: "100%"
-                }}
+                style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
               >
                 <option value="">選択してください</option>
                 <option value="有給休暇">有給休暇</option>
@@ -162,53 +161,37 @@ export default function App() {
                 placeholder="理由"
                 value={formData.reason}
                 onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                style={{
-                  fontSize: "1.1rem",
-                  padding: "0.4rem",
-                  width: "100%"
-                }}
+                style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
               />
 
+              {/* 10分刻みドロップダウン */}
               {formData.type === "時間単位有給" && (
                 <>
-                  <input
-                    type="time"
-                    step="600" // 10分単位
+                  <select
                     value={formData.startTime}
-                    onChange={e =>
-                      setFormData({ ...formData, startTime: e.target.value })
-                    }
+                    onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                     required
-                    style={{
-                      fontSize: "1.1rem",
-                      padding: "0.4rem",
-                      width: "100%"
-                    }}
-                  />
-                  <input
-                    type="time"
-                    step="600" // 10分単位
+                    style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
+                  >
+                    <option value="">開始時間</option>
+                    {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+
+                  <select
                     value={formData.endTime}
-                    onChange={e =>
-                      setFormData({ ...formData, endTime: e.target.value })
-                    }
+                    onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                     required
-                    style={{
-                      fontSize: "1.1rem",
-                      padding: "0.4rem",
-                      width: "100%"
-                    }}
-                  />
+                    style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
+                  >
+                    <option value="">終了時間</option>
+                    {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
                 </>
               )}
 
               <button
                 type="submit"
-                style={{
-                  fontSize: "1.1rem",
-                  padding: "0.5rem",
-                  cursor: "pointer"
-                }}
+                style={{ fontSize: "1.1rem", padding: "0.5rem", cursor: "pointer" }}
               >
                 登録
               </button>
@@ -224,9 +207,7 @@ export default function App() {
                 .map(v => (
                   <li key={v.id}>
                     {v.date}：{v.name} {v.type}
-                    {v.type === "時間単位有給"
-                      ? ` ${v.startTime}〜${v.endTime}`
-                      : ""}{" "}
+                    {v.type === "時間単位有給" ? ` ${v.startTime}〜${v.endTime}` : ""}{" "}
                     ({v.reason})
                   </li>
                 ))}
