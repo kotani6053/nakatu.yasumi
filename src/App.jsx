@@ -86,7 +86,7 @@ export default function App() {
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
-          formatDay={(locale, date) => date.getDate()} // ← 「1日」を「1」に変更
+          formatDay={(locale, date) => date.getDate()} // 「1日」を「1」に変更
         />
 
         <div
@@ -129,23 +129,29 @@ export default function App() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "0.5rem"
+                gap: "0.7rem"
               }}
             >
               <input
                 placeholder="名前"
                 value={formData.name}
-                onChange={e =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
                 required
+                style={{
+                  fontSize: "1.1rem",
+                  padding: "0.4rem",
+                  width: "100%"
+                }}
               />
               <select
                 value={formData.type}
-                onChange={e =>
-                  setFormData({ ...formData, type: e.target.value })
-                }
+                onChange={e => setFormData({ ...formData, type: e.target.value })}
                 required
+                style={{
+                  fontSize: "1.1rem",
+                  padding: "0.4rem",
+                  width: "100%"
+                }}
               >
                 <option value="">選択してください</option>
                 <option value="有給休暇">有給休暇</option>
@@ -155,33 +161,57 @@ export default function App() {
               <input
                 placeholder="理由"
                 value={formData.reason}
-                onChange={e =>
-                  setFormData({ ...formData, reason: e.target.value })
-                }
+                onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                style={{
+                  fontSize: "1.1rem",
+                  padding: "0.4rem",
+                  width: "100%"
+                }}
               />
 
               {formData.type === "時間単位有給" && (
                 <>
                   <input
                     type="time"
+                    step="600" // 10分単位
                     value={formData.startTime}
                     onChange={e =>
                       setFormData({ ...formData, startTime: e.target.value })
                     }
                     required
+                    style={{
+                      fontSize: "1.1rem",
+                      padding: "0.4rem",
+                      width: "100%"
+                    }}
                   />
                   <input
                     type="time"
+                    step="600" // 10分単位
                     value={formData.endTime}
                     onChange={e =>
                       setFormData({ ...formData, endTime: e.target.value })
                     }
                     required
+                    style={{
+                      fontSize: "1.1rem",
+                      padding: "0.4rem",
+                      width: "100%"
+                    }}
                   />
                 </>
               )}
 
-              <button type="submit">登録</button>
+              <button
+                type="submit"
+                style={{
+                  fontSize: "1.1rem",
+                  padding: "0.5rem",
+                  cursor: "pointer"
+                }}
+              >
+                登録
+              </button>
             </form>
           </div>
 
