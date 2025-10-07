@@ -65,6 +65,9 @@ export default function App() {
     return `${year}年${month}月${day}日`;
   };
 
+  // 表示用文字列を別変数に保持
+  const displayDate = formatDateJP(selectedDate);
+
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
@@ -75,7 +78,7 @@ export default function App() {
         />
 
         <div style={{ flex: 1 }}>
-          <h3>{formatDateJP(selectedDate)} の予定</h3>
+          <h3>{displayDate} の予定</h3>
           <ul>
             {getVacationsForDay(selectedDate).map(v => (
               <li key={v.id}>
