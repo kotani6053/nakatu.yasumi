@@ -23,7 +23,7 @@ export default function App() {
     endTime: ""
   });
 
-  // Firestoreからリアルタイム取得
+  // Firestore からリアルタイムで取得
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -33,8 +33,16 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // YYYY-MM-DD形式で日付を比較
+  const formatDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
   const getVacationsForDay = (date) =>
-    vacations.filter(v => v.date === date.toISOString().split("T")[0]);
+    vacations.filter(v => v.date === formatDate(date));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +51,7 @@ export default function App() {
     try {
       await addDoc(collection(db, "vacations"), {
         ...formData,
-        date: selectedDate.toISOString().split("T")[0],
+        date: formatDate(selectedDate),
         startTime: formData.type === "時間単位有給" ? formData.startTime : null,
         endTime: formData.type === "時間単位有給" ? formData.endTime : null,
         createdAt: new Date()
@@ -74,7 +82,9 @@ export default function App() {
         />
 
         <div style={{ flex: 1, width: "100%", maxWidth: "600px" }}>
-          <h3>{selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日 の予定</h3>
+          <h3>
+            {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日 の予定
+          </h3>
           <ul>
             {getVacationsForDay(selectedDate).map(v => (
               <li key={v.id}>
@@ -95,12 +105,12 @@ export default function App() {
             <input
               placeholder="名前"
               value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
               required
             />
             <select
               value={formData.type}
-              onChange={e => setFormData({...formData, type: e.target.value})}
+              onChange={e => setFormData({ ...formData, type: e.target.value })}
               required
             >
               <option value="">選択してください</option>
@@ -111,7 +121,7 @@ export default function App() {
             <input
               placeholder="理由"
               value={formData.reason}
-              onChange={e => setFormData({...formData, reason: e.target.value})}
+              onChange={e => setFormData({ ...formData, reason: e.target.value })}
             />
 
             {formData.type === "時間単位有給" && (
@@ -119,13 +129,13 @@ export default function App() {
                 <input
                   type="time"
                   value={formData.startTime}
-                  onChange={e => setFormData({...formData, startTime: e.target.value})}
+                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                   required
                 />
                 <input
                   type="time"
                   value={formData.endTime}
-                  onChange={e => setFormData({...formData, endTime: e.target.value})}
+                  onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                   required
                 />
               </>
