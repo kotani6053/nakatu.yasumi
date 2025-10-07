@@ -77,9 +77,11 @@ export default function App() {
     }
   };
 
-  const timeOptions = Array.from({ length: 24*6 }, (_, i) => {
-    const h = String(Math.floor(i/6)).padStart(2,'0');
-    const m = String((i%6)*10).padStart(2,'0');
+  // 6:00～22:50の10分刻み時間オプション
+  const timeOptions = Array.from({ length: (22 - 6 + 1) * 6 }, (_, i) => {
+    const totalMinutes = 6 * 60 + i * 10;
+    const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+    const m = String(totalMinutes % 60).padStart(2, '0');
     return `${h}:${m}`;
   });
 
@@ -196,7 +198,23 @@ export default function App() {
               </>
             )}
 
-            <button type="submit" style={{ fontSize: "1.1rem", padding: "0.5rem", cursor: "pointer" }}>
+            {/* 登録ボタンをボタン感に */}
+            <button
+              type="submit"
+              style={{
+                fontSize: "1.1rem",
+                padding: "0.6rem",
+                width: "100%",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                transition: "background-color 0.2s"
+              }}
+              onMouseOver={e => e.currentTarget.style.backgroundColor = "#45a049"}
+              onMouseOut={e => e.currentTarget.style.backgroundColor = "#4CAF50"}
+            >
               登録
             </button>
           </form>
