@@ -14,7 +14,7 @@ import {
 
 export default function App() {
   const [vacations, setVacations] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]); // YYYY-MM-DD
   const [formData, setFormData] = useState({
     name: "",
     type: "",
@@ -32,8 +32,8 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const getVacationsForDay = (date) =>
-    vacations.filter(v => v.date === date.toISOString().split("T")[0]);
+  const getVacationsForDay = (dateStr) =>
+    vacations.filter(v => v.date === dateStr);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export default function App() {
 
     await addDoc(collection(db, "vacations"), {
       ...formData,
-      date: selectedDate.toISOString().split("T")[0],
+      date: selectedDate,
       startTime: formData.type === "時間単位有給" ? formData.startTime : null,
       endTime: formData.type === "時間単位有給" ? formData.endTime : null,
       createdAt: new Date()
@@ -56,14 +56,10 @@ export default function App() {
     await deleteDoc(doc(db, "vacations", id));
   };
 
-  // 日付を必ず Date 型にして日本語表記する関数
-  const formatDateJP = (date) => {
-    const d = date instanceof Date ? date : new Date(date);
-    return new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    }).format(d);
+  // 選択日を日本語表記に変換
+  const formatDateJP = (dateStr) => {
+    const [year, month, day] = dateStr.split("-");
+    return `${year}年${Number(month)}月${Number(day)}日`;
   };
 
   return (
@@ -71,11 +67,11 @@ export default function App() {
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2rem", padding: "1rem" }}>
         <Calendar
-          onChange={setSelectedDate}
-          value={selectedDate}
-          tileContent={({ date }) =>
-            date.getDate() === 1 ? null : undefined
-          }
+          onChange={(date) => {
+            const str = date.toISOString().split("T")[0];
+            setSelectedDate(str);
+          }}
+          value={new Date(selectedDate)}
         />
 
         <div style={{ flex: 1 }}>
