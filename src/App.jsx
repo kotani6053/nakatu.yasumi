@@ -14,7 +14,7 @@ import {
 
 export default function App() {
   const [vacations, setVacations] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]); // YYYY-MM-DD
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [formData, setFormData] = useState({
     name: "",
     type: "",
@@ -32,8 +32,8 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const getVacationsForDay = (dateStr) =>
-    vacations.filter(v => v.date === dateStr);
+  const getVacationsForDay = (date) =>
+    vacations.filter(v => v.date === date.toISOString().split("T")[0]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export default function App() {
 
     await addDoc(collection(db, "vacations"), {
       ...formData,
-      date: selectedDate,
+      date: selectedDate.toISOString().split("T")[0],
       startTime: formData.type === "時間単位有給" ? formData.startTime : null,
       endTime: formData.type === "時間単位有給" ? formData.endTime : null,
       createdAt: new Date()
@@ -56,10 +56,12 @@ export default function App() {
     await deleteDoc(doc(db, "vacations", id));
   };
 
-  // 選択日を日本語表記に変換
-  const formatDateJP = (dateStr) => {
-    const [year, month, day] = dateStr.split("-");
-    return `${year}年${Number(month)}月${Number(day)}日`;
+  // 日付を「YYYY年M月D日」に変換
+  const formatDateJP = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // 0始まりなので +1
+    const day = date.getDate();
+    return `${year}年${month}月${day}日`;
   };
 
   return (
@@ -67,11 +69,8 @@ export default function App() {
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2rem", padding: "1rem" }}>
         <Calendar
-          onChange={(date) => {
-            const str = date.toISOString().split("T")[0];
-            setSelectedDate(str);
-          }}
-          value={new Date(selectedDate)}
+          onChange={(date) => setSelectedDate(date)}
+          value={selectedDate}
         />
 
         <div style={{ flex: 1 }}>
