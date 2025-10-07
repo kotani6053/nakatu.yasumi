@@ -58,7 +58,7 @@ export default function App() {
 
   return (
     <>
-      <h1 style={{ textAlign: "center" }}>中津有給取得者一覧</h1>
+      <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2rem", padding: "1rem" }}>
         <Calendar
           onChange={setSelectedDate}
