@@ -58,8 +58,8 @@ export default function App() {
       await addDoc(collection(db, "vacations"), {
         ...formData,
         date: formatDate(selectedDate),
-        startTime: formData.type === "時間単位有給" ? formData.startTime : null,
-        endTime: formData.type === "時間単位有給" ? formData.endTime : null,
+        startTime: formData.type === "時間有給" ? formData.startTime : null,
+        endTime: formData.type === "時間有給" ? formData.endTime : null,
         createdAt: new Date()
       });
       setFormData({ name: "", type: "", reason: "", startTime: "", endTime: "" });
@@ -86,7 +86,7 @@ export default function App() {
   });
 
   const typeColor = (type) => {
-    if (type === "時間単位有給") return "blue";
+    if (type === "時間有給") return "blue";
     if (type === "欠勤") return "red";
     return "black";
   };
@@ -116,7 +116,7 @@ export default function App() {
               {getVacationsForDay(selectedDate).map(v => (
                 <li key={v.id} style={{ color: typeColor(v.type) }}>
                   {v.name} {v.type}{" "}
-                  {v.type === "時間単位有給" ? `${v.startTime}〜${v.endTime}` : ""} ({v.reason})
+                  {v.type === "時間有給" ? `${v.startTime}〜${v.endTime}` : ""} ({v.reason})
                   <button
                     onClick={() => handleDelete(v.id)}
                     style={{ marginLeft: "0.5rem", color: "red" }}
@@ -130,14 +130,14 @@ export default function App() {
 
           {/* 全休暇一覧 */}
           <div style={{ flex: 1, minWidth: "300px", maxHeight: "500px", overflowY: "auto" }}>
-            <h3>全休暇一覧（早い日付順）</h3>
+            <h3>全休暇一覧</h3>
             <ul>
               {[...vacations]
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
                 .map(v => (
                   <li key={v.id} style={{ color: typeColor(v.type) }}>
                     {v.date}：{v.name} {v.type}
-                    {v.type === "時間単位有給" ? ` ${v.startTime}〜${v.endTime}` : ""} ({v.reason})
+                    {v.type === "時間有給" ? ` ${v.startTime}〜${v.endTime}` : ""} ({v.reason})
                   </li>
                 ))}
             </ul>
@@ -164,7 +164,7 @@ export default function App() {
             >
               <option value="">選択してください</option>
               <option value="有給休暇">有給休暇</option>
-              <option value="時間単位有給">時間単位有給</option>
+              <option value="時間有給">時間有給</option>
               <option value="欠勤">欠勤</option>
             </select>
             <input
@@ -174,7 +174,7 @@ export default function App() {
               style={{ fontSize: "1.1rem", padding: "0.4rem", width: "100%" }}
             />
 
-            {formData.type === "時間単位有給" && (
+            {formData.type === "時間有給" && (
               <>
                 <select
                   value={formData.startTime}
