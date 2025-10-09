@@ -115,20 +115,34 @@ export default function App() {
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
-      <div style={{ display: "flex", gap: "2rem", padding: "1rem" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          width: "100%",
+          gap: "2rem",
+          padding: "1rem"
+        }}
+      >
         {/* 左カラム：カレンダー上、フォーム下 */}
-        <div style={{ display: "flex", flexDirection: "column", width: "400px" }}>
-          {/* カレンダー */}
-          <div style={{ marginBottom: "1rem" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "400px",
+            gap: "1rem"
+          }}
+        >
+          <div>
             <Calendar onChange={setSelectedDate} value={selectedDate} />
           </div>
 
-          {/* 入力フォーム */}
           <div
             style={{
               border: "1px solid #ccc",
               padding: "10px",
-              borderRadius: "5px"
+              borderRadius: "5px",
+              boxSizing: "border-box"
             }}
           >
             <h4>{editingId ? "編集中" : "新規入力"}</h4>
@@ -143,7 +157,7 @@ export default function App() {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 required
-                style={{ width: "100%", padding: "8px" }}
+                style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
               />
 
               <select
@@ -152,7 +166,7 @@ export default function App() {
                   setFormData({ ...formData, type: e.target.value })
                 }
                 required
-                style={{ width: "100%", padding: "8px" }}
+                style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
               >
                 <option value="">選択してください</option>
                 <option value="有給休暇">有給休暇</option>
@@ -171,7 +185,7 @@ export default function App() {
                 onChange={(e) =>
                   setFormData({ ...formData, reason: e.target.value })
                 }
-                style={{ width: "100%", padding: "8px" }}
+                style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
               />
 
               {/* 時間単位有給 */}
@@ -184,14 +198,15 @@ export default function App() {
                       setFormData({ ...formData, startTime: e.target.value })
                     }
                     required
-                    style={{ width: "100%", padding: "8px" }}
+                    style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   >
                     {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
                       const h = Math.floor(i / 6) + 6;
                       const m = (i % 6) * 10;
-                      const time = `${String(h).padStart(2, "0")}:${String(
-                        m
-                      ).padStart(2, "0")}`;
+                      const time = `${String(h).padStart(2, "0")}:${String(m).padStart(
+                        2,
+                        "0"
+                      )}`;
                       return (
                         <option key={time} value={time}>
                           {time}
@@ -207,14 +222,15 @@ export default function App() {
                       setFormData({ ...formData, endTime: e.target.value })
                     }
                     required
-                    style={{ width: "100%", padding: "8px" }}
+                    style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   >
                     {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
                       const h = Math.floor(i / 6) + 6;
                       const m = (i % 6) * 10;
-                      const time = `${String(h).padStart(2, "0")}:${String(
-                        m
-                      ).padStart(2, "0")}`;
+                      const time = `${String(h).padStart(2, "0")}:${String(m).padStart(
+                        2,
+                        "0"
+                      )}`;
                       return (
                         <option key={time} value={time}>
                           {time}
@@ -236,7 +252,7 @@ export default function App() {
                       setFormData({ ...formData, startDate: e.target.value })
                     }
                     required
-                    style={{ width: "100%", padding: "8px" }}
+                    style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   />
                   <label>終了日：</label>
                   <input
@@ -246,7 +262,7 @@ export default function App() {
                       setFormData({ ...formData, endDate: e.target.value })
                     }
                     required
-                    style={{ width: "100%", padding: "8px" }}
+                    style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   />
                 </>
               )}
@@ -279,8 +295,9 @@ export default function App() {
             maxHeight: "600px",
             overflowY: "auto",
             border: "1px solid #ccc",
-            padding: "5px",
-            borderRadius: "5px"
+            padding: "10px",
+            borderRadius: "5px",
+            boxSizing: "border-box"
           }}
         >
           {/* 当月／全体切替 */}
@@ -293,7 +310,8 @@ export default function App() {
                 padding: "5px 10px",
                 borderRadius: "5px",
                 marginRight: "10px",
-                border: "none"
+                border: "none",
+                cursor: "pointer"
               }}
             >
               当月
@@ -305,7 +323,8 @@ export default function App() {
                 color: viewMode === "all" ? "white" : "black",
                 padding: "5px 10px",
                 borderRadius: "5px",
-                border: "none"
+                border: "none",
+                cursor: "pointer"
               }}
             >
               全体
@@ -319,13 +338,15 @@ export default function App() {
                   key={v.id}
                   style={{
                     color: getColor(v.type),
-                    marginBottom: "0.4rem",
+                    marginBottom: "0.5rem",
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center"
+                    alignItems: "center",
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: "5px"
                   }}
                 >
-                  <span>
+                  <span style={{ wordBreak: "break-word" }}>
                     {v.date}：{v.name} {v.type}{" "}
                     {v.startTime && v.endTime ? `${v.startTime}〜${v.endTime}` : ""}
                     {v.startDate && v.endDate ? ` (${v.startDate}〜${v.endDate})` : ""}{" "}
@@ -336,9 +357,11 @@ export default function App() {
                       onClick={() => handleEdit(v)}
                       style={{
                         marginRight: "5px",
-                        color: "green",
+                        backgroundColor: "#28a745",
+                        color: "white",
                         border: "none",
-                        background: "none",
+                        borderRadius: "3px",
+                        padding: "2px 6px",
                         cursor: "pointer"
                       }}
                     >
@@ -347,9 +370,11 @@ export default function App() {
                     <button
                       onClick={() => handleDelete(v.id)}
                       style={{
-                        color: "red",
+                        backgroundColor: "#dc3545",
+                        color: "white",
                         border: "none",
-                        background: "none",
+                        borderRadius: "3px",
+                        padding: "2px 6px",
                         cursor: "pointer"
                       }}
                     >
