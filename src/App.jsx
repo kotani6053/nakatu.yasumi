@@ -128,13 +128,14 @@ export default function App() {
           padding: "1rem"
         }}
       >
-        {/* カレンダー */}
+        {/* 左：カレンダー */}
         <div>
           <Calendar onChange={setSelectedDate} value={selectedDate} />
         </div>
 
-        {/* 全休暇一覧（当月／全体切替付き） */}
-        <div style={{ width: "400px" }}>
+        {/* 右：全休暇一覧＋フォーム */}
+        <div style={{ display: "flex", flexDirection: "column", width: "400px" }}>
+          {/* 当月／全体切替 */}
           <div style={{ marginBottom: "10px", textAlign: "center" }}>
             <button
               onClick={() => setViewMode("month")}
@@ -162,201 +163,219 @@ export default function App() {
               全体
             </button>
           </div>
-          <h3 style={{ textAlign: "center" }}>
-            {viewMode === "month" ? "当月の休暇一覧" : "全休暇一覧"}
-          </h3>
-          <ul>
-            {(viewMode === "month" ? currentMonthVacations : allVacations).map(
-              (v) => (
-                <li key={v.id} style={{ color: getColor(v.type) }}>
-                  {v.date}：{v.name} {v.type}{" "}
-                  {v.startTime && v.endTime
-                    ? `${v.startTime}〜${v.endTime}`
-                    : ""}
-                  {v.startDate && v.endDate
-                    ? ` (${v.startDate}〜${v.endDate})`
-                    : ""}{" "}
-                  {v.reason && `（${v.reason}）`}
-                  <button
-                    onClick={() => handleEdit(v)}
-                    style={{
-                      marginLeft: "0.5rem",
-                      color: "green",
-                      border: "none",
-                      background: "none",
-                      cursor: "pointer"
-                    }}
-                  >
-                    編集
-                  </button>
-                  <button
-                    onClick={() => handleDelete(v.id)}
-                    style={{
-                      marginLeft: "0.5rem",
-                      color: "red",
-                      border: "none",
-                      background: "none",
-                      cursor: "pointer"
-                    }}
-                  >
-                    削除
-                  </button>
-                </li>
-              )
-            )}
-          </ul>
-        </div>
-      </div>
 
-      {/* 入力フォーム（カレンダー下） */}
-      <div
-        style={{
-          maxWidth: "600px",
-          margin: "0 auto",
-          padding: "1rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5rem"
-        }}
-      >
-        <h3>
-          {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月
-          {selectedDate.getDate()}日 の予定入力
-        </h3>
-        <form onSubmit={handleSubmit}>
-          <input
-            placeholder="名前"
-            value={formData.name}
-            onChange={(e) =>
-              setFormData({ ...formData, name: e.target.value })
-            }
-            required
-            style={{ width: "100%", padding: "8px" }}
-          />
-
-          <select
-            value={formData.type}
-            onChange={(e) =>
-              setFormData({ ...formData, type: e.target.value })
-            }
-            required
-            style={{ width: "100%", padding: "8px" }}
-          >
-            <option value="">選択してください</option>
-            <option value="有給休暇">有給休暇</option>
-            <option value="時間単位有給">時間単位有給</option>
-            <option value="欠勤">欠勤</option>
-            <option value="連絡なし">連絡なし</option>
-            <option value="出張">出張</option>
-            <option value="外勤務">外勤務</option>
-            <option value="連休">連休</option>
-            <option value="長期休暇">長期休暇</option>
-          </select>
-
-          <input
-            placeholder="理由"
-            value={formData.reason}
-            onChange={(e) =>
-              setFormData({ ...formData, reason: e.target.value })
-            }
-            style={{ width: "100%", padding: "8px" }}
-          />
-
-          {/* 時間単位有給 */}
-          {formData.type === "時間単位有給" && (
-            <>
-              <label>開始時間：</label>
-              <select
-                value={formData.startTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, startTime: e.target.value })
-                }
-                required
-                style={{ width: "100%", padding: "8px" }}
-              >
-                {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
-                  const h = Math.floor(i / 6) + 6;
-                  const m = (i % 6) * 10;
-                  const time = `${String(h).padStart(2, "0")}:${String(
-                    m
-                  ).padStart(2, "0")}`;
-                  return (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  );
-                })}
-              </select>
-
-              <label>終了時間：</label>
-              <select
-                value={formData.endTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, endTime: e.target.value })
-                }
-                required
-                style={{ width: "100%", padding: "8px" }}
-              >
-                {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
-                  const h = Math.floor(i / 6) + 6;
-                  const m = (i % 6) * 10;
-                  const time = `${String(h).padStart(2, "0")}:${String(
-                    m
-                  ).padStart(2, "0")}`;
-                  return (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  );
-                })}
-              </select>
-            </>
-          )}
-
-          {/* 連休・長期休暇 */}
-          {(formData.type === "連休" || formData.type === "長期休暇") && (
-            <>
-              <label>開始日：</label>
-              <input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value })
-                }
-                required
-                style={{ width: "100%", padding: "8px" }}
-              />
-              <label>終了日：</label>
-              <input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, endDate: e.target.value })
-                }
-                required
-                style={{ width: "100%", padding: "8px" }}
-              />
-            </>
-          )}
-
-          <button
-            type="submit"
+          {/* 全休暇一覧 */}
+          <div
             style={{
-              backgroundColor: "#007bff",
-              color: "white",
-              padding: "10px",
-              width: "100%",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              marginTop: "10px",
-              fontSize: "1rem",
-              fontWeight: "bold"
+              maxHeight: "300px",
+              overflowY: "auto",
+              border: "1px solid #ccc",
+              padding: "5px",
+              marginBottom: "10px"
             }}
           >
-            {editingId ? "更新" : "登録"}
-          </button>
-        </form>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {(viewMode === "month" ? currentMonthVacations : allVacations).map(
+                (v) => (
+                  <li
+                    key={v.id}
+                    style={{
+                      color: getColor(v.type),
+                      marginBottom: "0.4rem",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                  >
+                    <span>
+                      {v.date}：{v.name} {v.type}{" "}
+                      {v.startTime && v.endTime
+                        ? `${v.startTime}〜${v.endTime}`
+                        : ""}
+                      {v.startDate && v.endDate
+                        ? ` (${v.startDate}〜${v.endDate})`
+                        : ""}{" "}
+                      {v.reason && `（${v.reason}）`}
+                    </span>
+                    <span>
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{
+                          marginRight: "5px",
+                          color: "green",
+                          border: "none",
+                          background: "none",
+                          cursor: "pointer"
+                        }}
+                      >
+                        編集
+                      </button>
+                      <button
+                        onClick={() => handleDelete(v.id)}
+                        style={{
+                          color: "red",
+                          border: "none",
+                          background: "none",
+                          cursor: "pointer"
+                        }}
+                      >
+                        削除
+                      </button>
+                    </span>
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+
+          {/* 入力フォーム */}
+          <div
+            style={{
+              border: "1px solid #ccc",
+              padding: "10px",
+              borderRadius: "5px"
+            }}
+          >
+            <h4>{editingId ? "編集中" : "新規入力"}</h4>
+            <form
+              onSubmit={handleSubmit}
+              style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+            >
+              <input
+                placeholder="名前"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                required
+                style={{ width: "100%", padding: "8px" }}
+              />
+
+              <select
+                value={formData.type}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                required
+                style={{ width: "100%", padding: "8px" }}
+              >
+                <option value="">選択してください</option>
+                <option value="有給休暇">有給休暇</option>
+                <option value="時間単位有給">時間単位有給</option>
+                <option value="欠勤">欠勤</option>
+                <option value="連絡なし">連絡なし</option>
+                <option value="出張">出張</option>
+                <option value="外勤務">外勤務</option>
+                <option value="連休">連休</option>
+                <option value="長期休暇">長期休暇</option>
+              </select>
+
+              <input
+                placeholder="理由"
+                value={formData.reason}
+                onChange={(e) =>
+                  setFormData({ ...formData, reason: e.target.value })
+                }
+                style={{ width: "100%", padding: "8px" }}
+              />
+
+              {/* 時間単位有給 */}
+              {formData.type === "時間単位有給" && (
+                <>
+                  <label>開始時間：</label>
+                  <select
+                    value={formData.startTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startTime: e.target.value })
+                    }
+                    required
+                    style={{ width: "100%", padding: "8px" }}
+                  >
+                    {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
+                      const h = Math.floor(i / 6) + 6;
+                      const m = (i % 6) * 10;
+                      const time = `${String(h).padStart(2, "0")}:${String(
+                        m
+                      ).padStart(2, "0")}`;
+                      return (
+                        <option key={time} value={time}>
+                          {time}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <label>終了時間：</label>
+                  <select
+                    value={formData.endTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endTime: e.target.value })
+                    }
+                    required
+                    style={{ width: "100%", padding: "8px" }}
+                  >
+                    {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
+                      const h = Math.floor(i / 6) + 6;
+                      const m = (i % 6) * 10;
+                      const time = `${String(h).padStart(2, "0")}:${String(
+                        m
+                      ).padStart(2, "0")}`;
+                      return (
+                        <option key={time} value={time}>
+                          {time}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </>
+              )}
+
+              {/* 連休・長期休暇 */}
+              {(formData.type === "連休" || formData.type === "長期休暇") && (
+                <>
+                  <label>開始日：</label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startDate: e.target.value })
+                    }
+                    required
+                    style={{ width: "100%", padding: "8px" }}
+                  />
+                  <label>終了日：</label>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
+                    required
+                    style={{ width: "100%", padding: "8px" }}
+                  />
+                </>
+              )}
+
+              <button
+                type="submit"
+                style={{
+                  backgroundColor: "#007bff",
+                  color: "white",
+                  padding: "10px",
+                  width: "100%",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  marginTop: "10px",
+                  fontSize: "1rem",
+                  fontWeight: "bold"
+                }}
+              >
+                {editingId ? "更新" : "登録"}
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </>
   );
