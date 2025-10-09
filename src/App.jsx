@@ -17,16 +17,24 @@ export default function App() {
   const [vacations, setVacations] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState(null);
-  const [viewMode, setViewMode] = useState("month"); // "month" or "all"
+  const [viewMode, setViewMode] = useState("today"); // "today" | "month" | "all"
   const [formData, setFormData] = useState({
     name: "",
     type: "",
-    reason: "",
+    reasons: [],
     startTime: "",
     endTime: "",
     startDate: "",
     endDate: ""
   });
+
+  const reasonOptions = [
+    "体調不良の為",
+    "私用の為",
+    "通院の為",
+    "子の行事の為",
+    "子の看病の為"
+  ];
 
   // Firestoreリアルタイム取得
   useEffect(() => {
@@ -45,11 +53,15 @@ export default function App() {
     return `${y}-${m}-${d}`;
   };
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentMonthVacations = vacations.filter(
-    (v) => Number(v.date?.split("-")[1]) === currentMonth
-  );
-  const allVacations = vacations;
+  const handleReasonChange = (reason) => {
+    setFormData((prev) => {
+      if (prev.reasons.includes(reason)) {
+        return { ...prev, reasons: prev.reasons.filter((r) => r !== reason) };
+      } else {
+        return { ...prev, reasons: [...prev.reasons, reason] };
+      }
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,7 +83,7 @@ export default function App() {
       setFormData({
         name: "",
         type: "",
-        reason: "",
+        reasons: [],
         startTime: "",
         endTime: "",
         startDate: "",
@@ -83,7 +95,10 @@ export default function App() {
   };
 
   const handleEdit = (v) => {
-    setFormData(v);
+    setFormData({
+      ...v,
+      reasons: v.reasons || []
+    });
     setEditingId(v.id);
   };
 
@@ -112,6 +127,15 @@ export default function App() {
     }
   };
 
+  const displayedVacations =
+    viewMode === "today"
+      ? vacations.filter((v) => v.date === formatDate(selectedDate))
+      : viewMode === "month"
+      ? vacations.filter(
+          (v) => Number(v.date.split("-")[1]) === selectedDate.getMonth() + 1
+        )
+      : vacations;
+
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
@@ -124,18 +148,9 @@ export default function App() {
           padding: "1rem"
         }}
       >
-        {/* 左カラム：カレンダー上、フォーム下 */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            width: "400px",
-            gap: "1rem"
-          }}
-        >
-          <div>
-            <Calendar onChange={setSelectedDate} value={selectedDate} />
-          </div>
+        {/* 左カラム：カレンダー＋フォーム */}
+        <div style={{ display: "flex", flexDirection: "column", width: "400px", gap: "1rem" }}>
+          <Calendar onChange={setSelectedDate} value={selectedDate} />
 
           <div
             style={{
@@ -153,18 +168,14 @@ export default function App() {
               <input
                 placeholder="名前"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
               />
 
               <select
                 value={formData.type}
-                onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 required
                 style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
               >
@@ -179,14 +190,18 @@ export default function App() {
                 <option value="長期休暇">長期休暇</option>
               </select>
 
-              <input
-                placeholder="理由"
-                value={formData.reason}
-                onChange={(e) =>
-                  setFormData({ ...formData, reason: e.target.value })
-                }
-                style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
-              />
+              <div>
+                {reasonOptions.map((reason) => (
+                  <label key={reason} style={{ display: "block" }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.reasons.includes(reason)}
+                      onChange={() => handleReasonChange(reason)}
+                    />{" "}
+                    {reason}
+                  </label>
+                ))}
+              </div>
 
               {/* 時間単位有給 */}
               {formData.type === "時間単位有給" && (
@@ -194,19 +209,14 @@ export default function App() {
                   <label>開始時間：</label>
                   <select
                     value={formData.startTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startTime: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                     required
                     style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   >
                     {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
                       const h = Math.floor(i / 6) + 6;
                       const m = (i % 6) * 10;
-                      const time = `${String(h).padStart(2, "0")}:${String(m).padStart(
-                        2,
-                        "0"
-                      )}`;
+                      const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
                       return (
                         <option key={time} value={time}>
                           {time}
@@ -218,19 +228,14 @@ export default function App() {
                   <label>終了時間：</label>
                   <select
                     value={formData.endTime}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endTime: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                     required
                     style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   >
                     {Array.from({ length: (22 - 6) * 6 + 1 }, (_, i) => {
                       const h = Math.floor(i / 6) + 6;
                       const m = (i % 6) * 10;
-                      const time = `${String(h).padStart(2, "0")}:${String(m).padStart(
-                        2,
-                        "0"
-                      )}`;
+                      const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
                       return (
                         <option key={time} value={time}>
                           {time}
@@ -248,9 +253,7 @@ export default function App() {
                   <input
                     type="date"
                     value={formData.startDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startDate: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     required
                     style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   />
@@ -258,9 +261,7 @@ export default function App() {
                   <input
                     type="date"
                     value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     required
                     style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
                   />
@@ -300,59 +301,55 @@ export default function App() {
             boxSizing: "border-box"
           }}
         >
-          {/* 当月／全体切替 */}
+          {/* 切替ボタン */}
           <div style={{ marginBottom: "10px", textAlign: "center" }}>
-            <button
-              onClick={() => setViewMode("month")}
-              style={{
-                backgroundColor: viewMode === "month" ? "#007bff" : "#eee",
-                color: viewMode === "month" ? "white" : "black",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                marginRight: "10px",
-                border: "none",
-                cursor: "pointer"
-              }}
-            >
-              当月
-            </button>
-            <button
-              onClick={() => setViewMode("all")}
-              style={{
-                backgroundColor: viewMode === "all" ? "#007bff" : "#eee",
-                color: viewMode === "all" ? "white" : "black",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                border: "none",
-                cursor: "pointer"
-              }}
-            >
-              全体
-            </button>
+            {["today", "month", "all"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                style={{
+                  backgroundColor: viewMode === mode ? "#007bff" : "#eee",
+                  color: viewMode === mode ? "white" : "black",
+                  padding: "5px 10px",
+                  borderRadius: "5px",
+                  marginRight: "5px",
+                  border: "none",
+                  cursor: "pointer"
+                }}
+              >
+                {mode === "today"
+                  ? "当日"
+                  : mode === "month"
+                  ? "当月"
+                  : "全体"}
+              </button>
+            ))}
           </div>
 
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {(viewMode === "month" ? currentMonthVacations : allVacations).map(
-              (v) => (
-                <li
-                  key={v.id}
-                  style={{
-                    color: getColor(v.type),
-                    marginBottom: "0.5rem",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    borderBottom: "1px solid #eee",
-                    paddingBottom: "5px"
-                  }}
-                >
-                  <span style={{ wordBreak: "break-word" }}>
-                    {v.date}：{v.name} {v.type}{" "}
-                    {v.startTime && v.endTime ? `${v.startTime}〜${v.endTime}` : ""}
-                    {v.startDate && v.endDate ? ` (${v.startDate}〜${v.endDate})` : ""}{" "}
-                    {v.reason && `（${v.reason}）`}
-                  </span>
-                  <span>
+            {displayedVacations.map((v) => (
+              <li
+                key={v.id}
+                style={{
+                  color: getColor(v.type),
+                  marginBottom: "0.5rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid #eee",
+                  paddingBottom: "5px"
+                }}
+              >
+                <span style={{ wordBreak: "break-word" }}>
+                  {v.date}：{v.name} {v.type}{" "}
+                  {v.startTime && v.endTime ? `${v.startTime}〜${v.endTime}` : ""}
+                  {v.startDate && v.endDate ? ` (${v.startDate}〜${v.endDate})` : ""}{" "}
+                  {v.reasons && v.reasons.length > 0
+                    ? `（${v.reasons.join("、")}）`
+                    : ""}
+                </span>
+                <span>
+                  {v.type === "連絡なし" && (
                     <button
                       onClick={() => handleEdit(v)}
                       style={{
@@ -367,23 +364,23 @@ export default function App() {
                     >
                       編集
                     </button>
-                    <button
-                      onClick={() => handleDelete(v.id)}
-                      style={{
-                        backgroundColor: "#dc3545",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "3px",
-                        padding: "2px 6px",
-                        cursor: "pointer"
-                      }}
-                    >
-                      削除
-                    </button>
-                  </span>
-                </li>
-              )
-            )}
+                  )}
+                  <button
+                    onClick={() => handleDelete(v.id)}
+                    style={{
+                      backgroundColor: "#dc3545",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "3px",
+                      padding: "2px 6px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    削除
+                  </button>
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
