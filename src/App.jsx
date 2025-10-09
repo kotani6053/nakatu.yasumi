@@ -45,14 +45,10 @@ export default function App() {
     return `${y}-${m}-${d}`;
   };
 
-  const getVacationsForDay = (date) =>
-    vacations.filter((v) => v.date === formatDate(date));
-
   const currentMonth = new Date().getMonth() + 1;
   const currentMonthVacations = vacations.filter(
     (v) => Number(v.date?.split("-")[1]) === currentMonth
   );
-
   const allVacations = vacations;
 
   const handleSubmit = async (e) => {
@@ -119,113 +115,12 @@ export default function App() {
   return (
     <>
       <h1 style={{ textAlign: "center" }}>中津休暇取得者一覧</h1>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "flex-start",
-          gap: "2rem",
-          padding: "1rem"
-        }}
-      >
-        {/* 左：カレンダー */}
-        <div>
-          <Calendar onChange={setSelectedDate} value={selectedDate} />
-        </div>
-
-        {/* 右：全休暇一覧＋フォーム */}
+      <div style={{ display: "flex", gap: "2rem", padding: "1rem" }}>
+        {/* 左カラム：カレンダー上、フォーム下 */}
         <div style={{ display: "flex", flexDirection: "column", width: "400px" }}>
-          {/* 当月／全体切替 */}
-          <div style={{ marginBottom: "10px", textAlign: "center" }}>
-            <button
-              onClick={() => setViewMode("month")}
-              style={{
-                backgroundColor: viewMode === "month" ? "#007bff" : "#eee",
-                color: viewMode === "month" ? "white" : "black",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                marginRight: "10px",
-                border: "none"
-              }}
-            >
-              当月
-            </button>
-            <button
-              onClick={() => setViewMode("all")}
-              style={{
-                backgroundColor: viewMode === "all" ? "#007bff" : "#eee",
-                color: viewMode === "all" ? "white" : "black",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                border: "none"
-              }}
-            >
-              全体
-            </button>
-          </div>
-
-          {/* 全休暇一覧 */}
-          <div
-            style={{
-              maxHeight: "300px",
-              overflowY: "auto",
-              border: "1px solid #ccc",
-              padding: "5px",
-              marginBottom: "10px"
-            }}
-          >
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {(viewMode === "month" ? currentMonthVacations : allVacations).map(
-                (v) => (
-                  <li
-                    key={v.id}
-                    style={{
-                      color: getColor(v.type),
-                      marginBottom: "0.4rem",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center"
-                    }}
-                  >
-                    <span>
-                      {v.date}：{v.name} {v.type}{" "}
-                      {v.startTime && v.endTime
-                        ? `${v.startTime}〜${v.endTime}`
-                        : ""}
-                      {v.startDate && v.endDate
-                        ? ` (${v.startDate}〜${v.endDate})`
-                        : ""}{" "}
-                      {v.reason && `（${v.reason}）`}
-                    </span>
-                    <span>
-                      <button
-                        onClick={() => handleEdit(v)}
-                        style={{
-                          marginRight: "5px",
-                          color: "green",
-                          border: "none",
-                          background: "none",
-                          cursor: "pointer"
-                        }}
-                      >
-                        編集
-                      </button>
-                      <button
-                        onClick={() => handleDelete(v.id)}
-                        style={{
-                          color: "red",
-                          border: "none",
-                          background: "none",
-                          cursor: "pointer"
-                        }}
-                      >
-                        削除
-                      </button>
-                    </span>
-                  </li>
-                )
-              )}
-            </ul>
+          {/* カレンダー */}
+          <div style={{ marginBottom: "1rem" }}>
+            <Calendar onChange={setSelectedDate} value={selectedDate} />
           </div>
 
           {/* 入力フォーム */}
@@ -375,6 +270,96 @@ export default function App() {
               </button>
             </form>
           </div>
+        </div>
+
+        {/* 右カラム：全休暇一覧 */}
+        <div
+          style={{
+            width: "400px",
+            maxHeight: "600px",
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            padding: "5px",
+            borderRadius: "5px"
+          }}
+        >
+          {/* 当月／全体切替 */}
+          <div style={{ marginBottom: "10px", textAlign: "center" }}>
+            <button
+              onClick={() => setViewMode("month")}
+              style={{
+                backgroundColor: viewMode === "month" ? "#007bff" : "#eee",
+                color: viewMode === "month" ? "white" : "black",
+                padding: "5px 10px",
+                borderRadius: "5px",
+                marginRight: "10px",
+                border: "none"
+              }}
+            >
+              当月
+            </button>
+            <button
+              onClick={() => setViewMode("all")}
+              style={{
+                backgroundColor: viewMode === "all" ? "#007bff" : "#eee",
+                color: viewMode === "all" ? "white" : "black",
+                padding: "5px 10px",
+                borderRadius: "5px",
+                border: "none"
+              }}
+            >
+              全体
+            </button>
+          </div>
+
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {(viewMode === "month" ? currentMonthVacations : allVacations).map(
+              (v) => (
+                <li
+                  key={v.id}
+                  style={{
+                    color: getColor(v.type),
+                    marginBottom: "0.4rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                  }}
+                >
+                  <span>
+                    {v.date}：{v.name} {v.type}{" "}
+                    {v.startTime && v.endTime ? `${v.startTime}〜${v.endTime}` : ""}
+                    {v.startDate && v.endDate ? ` (${v.startDate}〜${v.endDate})` : ""}{" "}
+                    {v.reason && `（${v.reason}）`}
+                  </span>
+                  <span>
+                    <button
+                      onClick={() => handleEdit(v)}
+                      style={{
+                        marginRight: "5px",
+                        color: "green",
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer"
+                      }}
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={() => handleDelete(v.id)}
+                      style={{
+                        color: "red",
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer"
+                      }}
+                    >
+                      削除
+                    </button>
+                  </span>
+                </li>
+              )
+            )}
+          </ul>
         </div>
       </div>
     </>
