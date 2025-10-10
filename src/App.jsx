@@ -19,7 +19,6 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState(null);
   const listRef = useRef(null);
-  const [panelHeight, setPanelHeight] = useState(400);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -51,7 +50,6 @@ export default function App() {
     "長期休暇"
   ];
 
-  // Firestoreからデータ取得
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -60,12 +58,6 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (listRef.current) {
-      setPanelHeight(listRef.current.offsetHeight);
-    }
-  }, [listRef, vacations]);
 
   const formatDate = (d) => {
     const date = new Date(d);
@@ -124,11 +116,6 @@ export default function App() {
         const eDate = new Date(formData.endDate);
         if (s > eDate) {
           alert("開始日が終了日より後です");
-          return;
-        }
-
-        if (isDuplicate(formData.name, formData.startDate, editingId)) {
-          alert("同じ名前の期間が重複しています");
           return;
         }
 
@@ -231,37 +218,25 @@ export default function App() {
 
   const [viewMode, setViewMode] = useState("today");
 
-  // 通常休暇（右カラム上段）
   const normalVacations = vacations.filter(
     (v) => v.date && v.type !== "連休" && v.type !== "長期休暇"
   );
-
-  // 長期休暇・連休（右カラム下段）
   const longVacations = vacations.filter(
     (v) => v.type === "連休" || v.type === "長期休暇"
   );
 
   const displayed = normalVacations.filter((v) => {
-    if (viewMode === "today") {
-      return v.date === formatDate(selectedDate);
-    }
-    if (viewMode === "month") {
-      const month = selectedDate.getMonth() + 1;
-      return Number(v.date.split("-")[1]) === month;
-    }
+    if (viewMode === "today") return v.date === formatDate(selectedDate);
+    if (viewMode === "month") return Number(v.date.split("-")[1]) === selectedDate.getMonth() + 1;
     return true;
   });
 
   const getColor = (type) => {
     switch (type) {
-      case "時間単位有給":
-        return "blue";
-      case "欠勤":
-        return "red";
-      case "連絡なし":
-        return "gray";
-      default:
-        return "black";
+      case "時間単位有給": return "blue";
+      case "欠勤": return "red";
+      case "連絡なし": return "gray";
+      default: return "black";
     }
   };
 
@@ -270,7 +245,6 @@ export default function App() {
       <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1100 }}>
         {/* 左カラム */}
         <div style={{ width: 520, display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* カレンダー */}
           <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
             <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
             <Calendar
@@ -280,7 +254,6 @@ export default function App() {
             />
           </div>
 
-          {/* 入力フォーム */}
           <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
             <h3 style={{ marginTop: 0 }}>{formatShortJP(selectedDate)}</h3>
             <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
@@ -305,7 +278,6 @@ export default function App() {
                 ))}
               </select>
 
-              {/* 期間入力 */}
               {(formData.type === "連休" || formData.type === "長期休暇") && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <input
@@ -326,7 +298,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* 時間単位有給 */}
               {formData.type === "時間単位有給" && (
                 <div style={{ display: "flex", gap: 8 }}>
                   <select value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} required style={{ flex: 1 }}>
@@ -354,7 +325,6 @@ export default function App() {
 
         {/* 右カラム */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* 通常休暇一覧 */}
           <div ref={listRef} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", flex: 1, overflowY: "auto" }}>
             <div style={{ marginBottom: 8 }}>
               <button onClick={() => setViewMode("today")} style={{ marginRight: 4 }}>当日</button>
@@ -365,34 +335,30 @@ export default function App() {
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {displayed.map((v) => (
                 <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
-                  <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
-                    {v.date ? formatShortJP(v.date) : ""}
-                  </div>
+                  <div style={{ fontWeight: "bold", color: getColor(v.type) }}>{v.date ? formatShortJP(v.date) : ""}</div>
                   <div>{v.name} ({v.type})</div>
                   {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
                   <div style={{ marginTop: 4 }}>
-                    {v.type === "連絡なし" && <button onClick={() => handleEdit(v)} style={{ marginRight: 4 }}>編集</button>}
-                    <button onClick={() => handleDelete(v.id)}>削除</button>
+                    {v.type === "連絡なし" && <button onClick={() => handleEdit(v)} style={{ marginRight: 4, padding: 4, backgroundColor: "#2196F3", color: "#fff", border: "none", borderRadius: 4 }}>編集</button>}
+                    <button onClick={() => handleDelete(v.id)} style={{ padding: 4, backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: 4 }}>削除</button>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* 長期休暇・連休一覧 */}
-          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", maxHeight: 300, overflowY: "auto" }}>
+          {/* 長期休暇・連休 */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", maxHeight: 120, overflowY: "auto" }}>
             <h3 style={{ marginTop: 0 }}>長期休暇・連休</h3>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {longVacations.map((v) => (
                 <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
-                  <div style={{ fontWeight: "bold" }}>
-                    {v.startDate ? formatShortJP(v.startDate) : ""}〜{v.endDate ? formatShortJP(v.endDate) : ""}
-                  </div>
+                  <div style={{ fontWeight: "bold" }}>{v.startDate ? formatShortJP(v.startDate) : ""}〜{v.endDate ? formatShortJP(v.endDate) : ""}</div>
                   <div>{v.name} ({v.type})</div>
                   {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
                   <div style={{ marginTop: 4 }}>
-                    <button onClick={() => handleEdit(v)} style={{ marginRight: 4 }}>編集</button>
-                    <button onClick={() => handleDelete(v.id)}>削除</button>
+                    <button onClick={() => handleEdit(v)} style={{ marginRight: 4, padding: 4, backgroundColor: "#2196F3", color: "#fff", border: "none", borderRadius: 4 }}>編集</button>
+                    <button onClick={() => handleDelete(v.id)} style={{ padding: 4, backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: 4 }}>削除</button>
                   </div>
                 </li>
               ))}
