@@ -1,264 +1,410 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import { db } from "./firebase";
 import {
   collection,
   addDoc,
+  onSnapshot,
+  query,
+  orderBy,
   deleteDoc,
   doc,
-  onSnapshot,
-  updateDoc,
+  updateDoc
 } from "firebase/firestore";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
 
-const App = () => {
-  const [date, setDate] = useState(new Date());
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [reason, setReason] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+export default function App() {
   const [vacations, setVacations] = useState([]);
-  const [longVacations, setLongVacations] = useState([]);
-  const [filter, setFilter] = useState("today");
-  const [editId, setEditId] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [editingId, setEditingId] = useState(null);
 
-  const vacationCollection = collection(db, "vacations");
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "",
+    reason: "",
+    startTime: "",
+    endTime: "",
+    startDate: "",
+    endDate: ""
+  });
+
+  const reasonOptions = [
+    "体調不良の為",
+    "私用の為",
+    "通院の為",
+    "子の行事の為",
+    "子の看病の為",
+    "その他"
+  ];
+
+  const typeOptions = [
+    "有給休暇",
+    "時間単位有給",
+    "欠勤",
+    "連絡なし",
+    "出張",
+    "外勤務",
+    "連休",
+    "長期休暇"
+  ];
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(vacationCollection, (snapshot) => {
-      const vacationData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const normal = vacationData.filter(
-        (v) => v.category !== "長期休暇" && v.category !== "連休"
-      );
-      const long = vacationData.filter(
-        (v) => v.category === "長期休暇" || v.category === "連休"
-      );
-      setVacations(normal);
-      setLongVacations(long);
+    const q = query(collection(db, "vacations"), orderBy("date"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setVacations(data);
     });
     return () => unsubscribe();
   }, []);
 
-  const handleAddVacation = async () => {
-    if (!name || !category) return alert("名前と区分は必須です");
-
-    const newVacation = {
-      name,
-      category,
-      reason,
-      date:
-        category === "長期休暇" || category === "連休"
-          ? `${startDate} ～ ${endDate}`
-          : date.toISOString().split("T")[0],
-      timestamp: new Date(),
-    };
-
-    await addDoc(vacationCollection, newVacation);
-    setName("");
-    setCategory("");
-    setReason("");
-    setStartDate("");
-    setEndDate("");
+  const formatDate = (d) => {
+    const date = new Date(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   };
 
-  const handleDelete = async (id) => {
-    await deleteDoc(doc(db, "vacations", id));
+  const formatShortJP = (d) => {
+    const date = new Date(d);
+    const w = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
+    return `${date.getMonth() + 1}月${date.getDate()}日（${w}）`;
   };
 
-  const handleEdit = async (id) => {
-    const newCategory = prompt("区分を変更", "欠勤");
-    if (newCategory) {
-      await updateDoc(doc(db, "vacations", id), { category: newCategory });
+  const timeOptions = (() => {
+    const arr = [];
+    const start = 6 * 60;
+    const end = 22 * 60 + 50;
+    for (let t = start; t <= end; t += 10) {
+      const h = String(Math.floor(t / 60)).padStart(2, "0");
+      const m = String(t % 60).padStart(2, "0");
+      arr.push(`${h}:${m}`);
+    }
+    return arr;
+  })();
+
+  const isDuplicate = (name, date, excludeId = null) => {
+    return vacations.some((v) => {
+      if (excludeId && v.id === excludeId) return false;
+      if (v.type === "連休" || v.type === "長期休暇") {
+        if (v.name !== name) return false;
+        const start = new Date(v.startDate);
+        const end = new Date(v.endDate);
+        const d = new Date(date);
+        return d >= start && d <= end;
+      }
+      return v.name === name && v.date === date;
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.type) {
+      alert("名前・区分は必須です");
+      return;
+    }
+
+    try {
+      if (formData.type === "連休" || formData.type === "長期休暇") {
+        if (!formData.startDate || !formData.endDate) {
+          alert("開始日・終了日を正しく入力してください");
+          return;
+        }
+        const s = new Date(formData.startDate);
+        const eDate = new Date(formData.endDate);
+        if (s > eDate) {
+          alert("開始日が終了日より後です");
+          return;
+        }
+
+        if (editingId) {
+          const ref = doc(db, "vacations", editingId);
+          await updateDoc(ref, {
+            name: formData.name,
+            type: formData.type,
+            reason: formData.reason || null,
+            startDate: formData.startDate,
+            endDate: formData.endDate
+          });
+          setEditingId(null);
+        } else {
+          await addDoc(collection(db, "vacations"), {
+            name: formData.name,
+            type: formData.type,
+            reason: formData.reason || null,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            date: null,
+            startTime: null,
+            endTime: null,
+            createdAt: new Date()
+          });
+        }
+      } else {
+        const dateStr = formatDate(selectedDate);
+        if (isDuplicate(formData.name, dateStr, editingId)) {
+          alert("同じ日・同じ名前の記録が既にあります。");
+          return;
+        }
+
+        if (editingId) {
+          const ref = doc(db, "vacations", editingId);
+          await updateDoc(ref, {
+            name: formData.name,
+            type: formData.type,
+            reason: formData.reason || null,
+            date: dateStr,
+            startTime: formData.type === "時間単位有給" ? formData.startTime : null,
+            endTime: formData.type === "時間単位有給" ? formData.endTime : null,
+            startDate: null,
+            endDate: null
+          });
+          setEditingId(null);
+        } else {
+          await addDoc(collection(db, "vacations"), {
+            name: formData.name,
+            type: formData.type,
+            reason: formData.reason || null,
+            date: dateStr,
+            startTime: formData.type === "時間単位有給" ? formData.startTime : null,
+            endTime: formData.type === "時間単位有給" ? formData.endTime : null,
+            startDate: null,
+            endDate: null,
+            createdAt: new Date()
+          });
+        }
+      }
+
+      setFormData({
+        name: "",
+        type: "",
+        reason: "",
+        startTime: "",
+        endTime: "",
+        startDate: "",
+        endDate: ""
+      });
+    } catch (err) {
+      console.error("保存エラー", err);
+      alert("保存に失敗しました");
     }
   };
 
-  const filteredVacations = vacations.filter((v) => {
-    const today = new Date();
-    const vDate = new Date(v.date);
-    if (filter === "today")
-      return vDate.toDateString() === today.toDateString();
-    if (filter === "month")
-      return (
-        vDate.getMonth() === today.getMonth() &&
-        vDate.getFullYear() === today.getFullYear()
-      );
+  const handleEdit = (v) => {
+    setEditingId(v.id);
+    setFormData({
+      name: v.name || "",
+      type: v.type || "",
+      reason: v.reason || "",
+      startTime: v.startTime || "",
+      endTime: v.endTime || "",
+      startDate: v.startDate || "",
+      endDate: v.endDate || ""
+    });
+    if (v.date) setSelectedDate(new Date(v.date));
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("この記録を削除しますか？")) return;
+    try {
+      await deleteDoc(doc(db, "vacations", id));
+    } catch (err) {
+      console.error("削除失敗", err);
+      alert("削除に失敗しました");
+    }
+  };
+
+  const [viewMode, setViewMode] = useState("today");
+
+  const normalVacations = vacations.filter(
+    (v) => v.date && v.type !== "連休" && v.type !== "長期休暇"
+  );
+  const longVacations = vacations.filter(
+    (v) => v.type === "連休" || v.type === "長期休暇"
+  );
+
+  const displayed = normalVacations.filter((v) => {
+    if (viewMode === "today") return v.date === formatDate(selectedDate);
+    if (viewMode === "month") return Number(v.date.split("-")[1]) === selectedDate.getMonth() + 1;
     return true;
   });
 
+  const getColor = (type) => {
+    switch (type) {
+      case "時間単位有給": return "blue";
+      case "欠勤": return "red";
+      case "連絡なし": return "gray";
+      case "出張": return "green";
+      case "外勤務": return "orange";
+      default: return "black";
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-100 p-8">
-      <div className="flex flex-row w-full max-w-7xl bg-white rounded-xl shadow-lg overflow-hidden">
-        {/* 左側：カレンダー＋フォーム */}
-        <div className="flex flex-col w-1/2 p-6 border-r border-gray-200">
-          <div className="flex flex-col items-center mb-6">
-            <h2 className="text-xl font-semibold mb-2">カレンダー</h2>
-            <Calendar onChange={setDate} value={date} />
+    <div style={{ display: "flex", justifyContent: "center", padding: 20 }}>
+      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1100 }}>
+        {/* 左カラム */}
+        <div style={{ width: 520, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
+            <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
+            <Calendar
+              onChange={setSelectedDate}
+              value={selectedDate}
+              formatDay={(locale, date) => date.getDate()}
+            />
           </div>
 
-          <div className="bg-gray-50 p-5 rounded-lg shadow-inner">
-            <h3 className="text-lg font-semibold mb-4 text-center">
-              新規入力（{date.toLocaleDateString("ja-JP", { 
-                year: "numeric", month: "long", day: "numeric", weekday: "short" 
-              })}）
-            </h3>
-            <div className="flex flex-col space-y-3">
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
+            <h3 style={{ marginTop: 0 }}>{formatShortJP(selectedDate)}</h3>
+            <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
+
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <input
-                className="p-2 border rounded w-full"
                 placeholder="名前"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
               />
               <select
-                className="p-2 border rounded w-full"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                required
+                style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
               >
-                <option value="">区分を選択</option>
-                <option>有給</option>
-                <option>欠勤</option>
-                <option>連休</option>
-                <option>長期休暇</option>
-                <option>外勤務</option>
-                <option>出張</option>
-                <option>連絡なし</option>
+                <option value="">選択してください</option>
+                {typeOptions.map((t) => <option key={t}>{t}</option>)}
               </select>
-
-              {(category === "連休" || category === "長期休暇") && (
-                <div className="flex space-x-2">
-                  <input
-                    type="date"
-                    className="p-2 border rounded w-1/2"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                  <input
-                    type="date"
-                    className="p-2 border rounded w-1/2"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-              )}
 
               <select
-                className="p-2 border rounded w-full"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                value={formData.reason}
+                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
               >
-                <option value="">理由を選択</option>
-                <option>体調不良の為</option>
-                <option>私用の為</option>
-                <option>通院の為</option>
-                <option>子の行事の為</option>
-                <option>子の看病の為</option>
-                <option>その他</option>
+                <option value="">理由</option>
+                {reasonOptions.map((r) => <option key={r}>{r}</option>)}
               </select>
 
+              {formData.type === "時間単位有給" && (
+                <>
+                  <select
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    required
+                    style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
+                  >
+                    <option value="">開始時間</option>
+                    {timeOptions.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                  <select
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    required
+                    style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
+                  >
+                    <option value="">終了時間</option>
+                    {timeOptions.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </>
+              )}
+
+              {(formData.type === "連休" || formData.type === "長期休暇") && (
+                <>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                    style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
+                  />
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                    style={{ width: "100%", boxSizing: "border-box", padding: 6, fontSize: 14 }}
+                  />
+                </>
+              )}
+
               <button
-                onClick={handleAddVacation}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded transition"
+                type="submit"
+                style={{ padding: 8, backgroundColor: "#2196F3", color: "#fff", border: "none", borderRadius: 4 }}
               >
-                登録
+                {editingId ? "更新" : "登録"}
               </button>
-            </div>
+            </form>
           </div>
         </div>
 
-        {/* 右側：休暇一覧 */}
-        <div className="flex flex-col w-1/2 p-6">
-          <h2 className="text-xl font-semibold mb-3">休暇一覧</h2>
+        {/* 右カラム */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", flex: 1, overflowY: "auto" }}>
+            <div style={{ marginBottom: 8 }}>
+              <button onClick={() => setViewMode("today")} style={{ marginRight: 4, padding: 4 }}>当日</button>
+              <button onClick={() => setViewMode("month")} style={{ marginRight: 4, padding: 4 }}>当月</button>
+              <button onClick={() => setViewMode("all")} style={{ padding: 4 }}>全体</button>
+            </div>
 
-          <div className="flex space-x-2 mb-4">
-            <button
-              className={`px-3 py-1 rounded ${
-                filter === "today" ? "bg-blue-500 text-white" : "bg-gray-200"
-              }`}
-              onClick={() => setFilter("today")}
-            >
-              当日
-            </button>
-            <button
-              className={`px-3 py-1 rounded ${
-                filter === "month" ? "bg-blue-500 text-white" : "bg-gray-200"
-              }`}
-              onClick={() => setFilter("month")}
-            >
-              当月
-            </button>
-            <button
-              className={`px-3 py-1 rounded ${
-                filter === "all" ? "bg-blue-500 text-white" : "bg-gray-200"
-              }`}
-              onClick={() => setFilter("all")}
-            >
-              一覧
-            </button>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {displayed.map((v) => (
+                <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
+                  <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
+                    {v.date && formatShortJP(v.date)} {v.name} ({v.type})
+                  </div>
+                  {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
+                  <div style={{ marginTop: 4 }}>
+                    {(v.type === "連絡なし" || v.type === "欠勤") && (
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{ marginRight: 4, padding: 4, backgroundColor: "#2196F3", color: "#fff", border: "none", borderRadius: 4 }}
+                      >
+                        編集
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(v.id)}
+                      style={{ padding: 4, backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: 4 }}
+                    >
+                      削除
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="overflow-y-auto flex-1 space-y-3">
-            {filteredVacations.map((item) => (
-              <div
-                key={item.id}
-                className="p-3 bg-gray-50 rounded-lg shadow flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold text-gray-800">{item.date}</p>
-                  <p className="text-gray-700">{item.name}</p>
-                  <p className="text-gray-500 text-sm">{item.category}</p>
-                  <p className="text-gray-400 text-sm">{item.reason}</p>
-                </div>
-                <div className="flex space-x-2">
-                  {item.category === "連絡なし" && (
+          {/* 長期休暇・連休 */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", maxHeight: 200, overflowY: "auto" }}>
+            <h4 style={{ marginTop: 0 }}>長期休暇・連休</h4>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {longVacations.map((v) => (
+                <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
+                  <div style={{ fontWeight: "bold" }}>
+                    {formatShortJP(v.startDate)}～{formatShortJP(v.endDate)} {v.name} ({v.type})
+                  </div>
+                  {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
+                  <div style={{ marginTop: 4 }}>
                     <button
-                      onClick={() => handleEdit(item.id)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                      onClick={() => handleEdit(v)}
+                      style={{ marginRight: 4, padding: 4, backgroundColor: "#2196F3", color: "#fff", border: "none", borderRadius: 4 }}
                     >
                       編集
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                  >
-                    削除
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 長期休暇・連休一覧（右下段） */}
-          <h3 className="text-lg font-semibold mt-6 mb-3">
-            長期休暇・連休一覧
-          </h3>
-          <div className="overflow-y-auto h-32 space-y-2">
-            {longVacations.map((item) => (
-              <div
-                key={item.id}
-                className="p-3 bg-white border rounded-lg shadow-sm flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold text-gray-800">{item.date}</p>
-                  <p className="text-gray-700">{item.name}</p>
-                  <p className="text-gray-500 text-sm">{item.reason}</p>
-                </div>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                >
-                  削除
-                </button>
-              </div>
-            ))}
+                    <button
+                      onClick={() => handleDelete(v.id)}
+                      style={{ padding: 4, backgroundColor: "#f44336", color: "#fff", border: "none", borderRadius: 4 }}
+                    >
+                      削除
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default App;
+}
