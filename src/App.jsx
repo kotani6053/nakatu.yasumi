@@ -337,7 +337,6 @@ export default function App() {
             </form>
           </div>
         </div>
-
         {/* 右カラム */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", flex: 1, overflowY: "auto" }}>
@@ -408,3 +407,4 @@ export default function App() {
     </div>
   );
 }
+
