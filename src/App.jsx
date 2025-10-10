@@ -347,7 +347,6 @@ export default function App() {
             </ul>
           </div>
 
-          {/* 長期休暇・連休 */}
           <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", maxHeight: 120, overflowY: "auto" }}>
             <h3 style={{ marginTop: 0 }}>長期休暇・連休</h3>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
