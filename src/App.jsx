@@ -36,7 +36,8 @@ export default function App() {
     "私用の為",
     "通院の為",
     "子の行事の為",
-    "子の看病の為"
+    "子の看病の為",
+    "その他"
   ];
 
   const typeOptions = [
@@ -60,7 +61,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 左カラムの高さを右カラムに合わせる
   useEffect(() => {
     if (listRef.current) {
       setPanelHeight(listRef.current.offsetHeight);
@@ -96,7 +96,6 @@ export default function App() {
   const isDuplicate = (name, date, excludeId = null) => {
     return vacations.some((v) => {
       if (excludeId && v.id === excludeId) return false;
-      // 長期休暇・連休は期間をチェック
       if (v.type === "連休" || v.type === "長期休暇") {
         if (v.name !== name) return false;
         const start = new Date(v.startDate);
@@ -232,12 +231,12 @@ export default function App() {
 
   const [viewMode, setViewMode] = useState("today");
 
-  // 通常休暇（右カラム用）
+  // 通常休暇（右カラム上段）
   const normalVacations = vacations.filter(
     (v) => v.date && v.type !== "連休" && v.type !== "長期休暇"
   );
 
-  // 長期休暇・連休（下用）
+  // 長期休暇・連休（右カラム下段）
   const longVacations = vacations.filter(
     (v) => v.type === "連休" || v.type === "長期休暇"
   );
@@ -268,94 +267,95 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: 20 }}>
-      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1100, flexDirection: "column" }}>
-        <div style={{ display: "flex", gap: 24 }}>
-          {/* 左カラム */}
-          <div style={{ width: 520, display: "flex", flexDirection: "column", height: panelHeight, gap: 16 }}>
-            {/* カレンダー */}
-            <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, flex: "0 0 auto", background: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
-              <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
-              <Calendar
-                onChange={setSelectedDate}
-                value={selectedDate}
-                formatDay={(locale, date) => date.getDate()}
-              />
-            </div>
-
-            {/* 入力フォーム */}
-            <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, flex: "0 0 auto", background: "#fff", boxSizing: "border-box", overflow: "visible" }}>
-              <h3 style={{ marginTop: 0 }}>{formatShortJP(selectedDate)}</h3>
-              <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
-
-              <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <input
-                  placeholder="名前"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  style={{ width: "100%", padding: 6, fontSize: 14 }}
-                />
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  required
-                  style={{ width: "100%", padding: 6, fontSize: 14 }}
-                >
-                  <option value="">選択してください</option>
-                  {typeOptions.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-
-                {/* 期間入力 */}
-                {(formData.type === "連休" || formData.type === "長期休暇") && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      required
-                      style={{ flex: 1 }}
-                    />
-                    <span>〜</span>
-                    <input
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                      required
-                      style={{ flex: 1 }}
-                    />
-                  </div>
-                )}
-
-                {/* 時間単位有給 */}
-                {formData.type === "時間単位有給" && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <select value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} required style={{ flex: 1 }}>
-                      <option value="">開始</option>
-                      {timeOptions.map((t) => <option key={t}>{t}</option>)}
-                    </select>
-                    <select value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} required style={{ flex: 1 }}>
-                      <option value="">終了</option>
-                      {timeOptions.map((t) => <option key={t}>{t}</option>)}
-                    </select>
-                  </div>
-                )}
-
-                <select value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} style={{ width: "100%", padding: 6, fontSize: 14 }}>
-                  <option value="">理由</option>
-                  {reasonOptions.map((r) => <option key={r}>{r}</option>)}
-                </select>
-
-                <button type="submit" style={{ marginTop: 6, padding: 8, backgroundColor: "#4CAF50", color: "#fff", border: "none", borderRadius: 4 }}>
-                  {editingId ? "更新" : "登録"}
-                </button>
-              </form>
-            </div>
+      <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1100 }}>
+        {/* 左カラム */}
+        <div style={{ width: 520, display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* カレンダー */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
+            <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
+            <Calendar
+              onChange={setSelectedDate}
+              value={selectedDate}
+              formatDay={(locale, date) => date.getDate()}
+            />
           </div>
 
-          {/* 右カラム: 通常休暇一覧 */}
-          <div ref={listRef} style={{ flex: 1, border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", maxHeight: 600, overflowY: "auto", boxSizing: "border-box" }}>
+          {/* 入力フォーム */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
+            <h3 style={{ marginTop: 0 }}>{formatShortJP(selectedDate)}</h3>
+            <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
+
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input
+                placeholder="名前"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                style={{ width: "100%", padding: 6, fontSize: 14 }}
+              />
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                required
+                style={{ width: "100%", padding: 6, fontSize: 14 }}
+              >
+                <option value="">選択してください</option>
+                {typeOptions.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+
+              {/* 期間入力 */}
+              {(formData.type === "連休" || formData.type === "長期休暇") && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <span>〜</span>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                </div>
+              )}
+
+              {/* 時間単位有給 */}
+              {formData.type === "時間単位有給" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} required style={{ flex: 1 }}>
+                    <option value="">開始</option>
+                    {timeOptions.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                  <select value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} required style={{ flex: 1 }}>
+                    <option value="">終了</option>
+                    {timeOptions.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <select value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} style={{ width: "100%", padding: 6, fontSize: 14 }}>
+                <option value="">理由</option>
+                {reasonOptions.map((r) => <option key={r}>{r}</option>)}
+              </select>
+
+              <button type="submit" style={{ marginTop: 6, padding: 8, backgroundColor: "#4CAF50", color: "#fff", border: "none", borderRadius: 4 }}>
+                {editingId ? "更新" : "登録"}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* 右カラム */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* 通常休暇一覧 */}
+          <div ref={listRef} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", flex: 1, overflowY: "auto" }}>
             <div style={{ marginBottom: 8 }}>
               <button onClick={() => setViewMode("today")} style={{ marginRight: 4 }}>当日</button>
               <button onClick={() => setViewMode("month")} style={{ marginRight: 4 }}>当月</button>
@@ -366,7 +366,7 @@ export default function App() {
               {displayed.map((v) => (
                 <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
                   <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
-                    {formatShortJP(v.date)}
+                    {v.date ? formatShortJP(v.date) : ""}
                   </div>
                   <div>{v.name} ({v.type})</div>
                   {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
@@ -378,26 +378,26 @@ export default function App() {
               ))}
             </ul>
           </div>
-        </div>
 
-        {/* 下段: 長期休暇／連休 */}
-        <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff" }}>
-          <h3>長期休暇・連休</h3>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {longVacations.map((v) => (
-              <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
-                <div style={{ fontWeight: "bold" }}>
-                  {formatShortJP(v.startDate)}〜{formatShortJP(v.endDate)}
-                </div>
-                <div>{v.name} ({v.type})</div>
-                {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
-                <div style={{ marginTop: 4 }}>
-                  <button onClick={() => handleEdit(v)} style={{ marginRight: 4 }}>編集</button>
-                  <button onClick={() => handleDelete(v.id)}>削除</button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {/* 長期休暇・連休一覧 */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12, background: "#fff", maxHeight: 300, overflowY: "auto" }}>
+            <h3 style={{ marginTop: 0 }}>長期休暇・連休</h3>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {longVacations.map((v) => (
+                <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 4 }}>
+                  <div style={{ fontWeight: "bold" }}>
+                    {v.startDate ? formatShortJP(v.startDate) : ""}〜{v.endDate ? formatShortJP(v.endDate) : ""}
+                  </div>
+                  <div>{v.name} ({v.type})</div>
+                  {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
+                  <div style={{ marginTop: 4 }}>
+                    <button onClick={() => handleEdit(v)} style={{ marginRight: 4 }}>編集</button>
+                    <button onClick={() => handleDelete(v.id)}>削除</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
