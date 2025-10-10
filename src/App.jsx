@@ -381,11 +381,13 @@ export default function App() {
               .map((v) => (
                 <li key={v.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0f0f0" }}>
                   <div>
-                    <div style={{ fontWeight: 600 }}>{v.name} <span style={{ color: getColor(v.type) }}>{v.type}</span></div>
+                    <div style={{ fontWeight: 600 }}>
+                      {v.date} / {v.name} <span style={{ color: getColor(v.type) }}>{v.type}</span>
+                    </div>
                     <div style={{ fontSize: 13, color: "#555" }}>
-                      {v.date}{v.startDate && v.endDate ? `（${v.startDate}〜${v.endDate}）` : ""}
-                      {v.startTime && v.endTime ? ` ${v.startTime}〜${v.endTime}` : ""}
-                      {v.reason ? ` 理由：${v.reason}` : ""}
+                      {v.reason && <div>理由：{v.reason}</div>}
+                      {v.startTime && v.endTime && <div>時間：{v.startTime}〜{v.endTime}</div>}
+                      {v.startDate && v.endDate && <div>期間：{v.startDate}〜{v.endDate}</div>}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
