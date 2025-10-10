@@ -18,7 +18,7 @@ export default function App() {
   const [vacations, setVacations] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState(null);
-  const [panelHeight, setPanelHeight] = useState(400); // 一覧の高さを基準に
+  const [panelHeight, setPanelHeight] = useState(400); // 右カラムの高さ
   const listRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 一覧の高さを取得してカレンダー・フォームに反映
+  // 右カラムの高さを取得して左カラムに反映
   useEffect(() => {
     if (listRef.current) {
       setPanelHeight(listRef.current.offsetHeight);
@@ -234,17 +234,17 @@ export default function App() {
     <div style={{ display: "flex", justifyContent: "center", padding: 20 }}>
       <div style={{ display: "flex", gap: 24, width: "100%", maxWidth: 1100 }}>
         {/* 左カラム */}
-        <div style={{ width: 520, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ width: 520, display: "flex", flexDirection: "column", height: panelHeight, gap: 16 }}>
           {/* カレンダー */}
           <div
             style={{
               border: "1px solid #ddd",
               borderRadius: 8,
               padding: 12,
-              height: panelHeight,
-              overflow: "visible",
+              flex: 1,
               background: "#fff",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
+              overflow: "visible"
             }}
           >
             <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
@@ -261,7 +261,7 @@ export default function App() {
               border: "1px solid #ddd",
               borderRadius: 8,
               padding: 12,
-              height: panelHeight,
+              flex: 1,
               background: "#fff",
               boxSizing: "border-box",
               overflow: "auto"
@@ -351,7 +351,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* 右カラム：一覧 */}
+        {/* 右カラム：休暇一覧 */}
         <div
           ref={listRef}
           style={{
@@ -366,7 +366,7 @@ export default function App() {
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: 0 }}>全休暇一覧</h3>
+            <h3 style={{ margin: 0 }}>休暇一覧</h3>
             <div>
               <button onClick={() => setViewMode("today")}>当日</button>
               <button onClick={() => setViewMode("month")}>当月</button>
