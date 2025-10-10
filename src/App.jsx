@@ -18,8 +18,8 @@ export default function App() {
   const [vacations, setVacations] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState(null);
-  const [panelHeight, setPanelHeight] = useState(400); // 右カラムの高さ
   const listRef = useRef(null);
+  const [panelHeight, setPanelHeight] = useState(400);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -50,6 +50,7 @@ export default function App() {
     "長期休暇"
   ];
 
+  // Firestoreからデータ取得
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -59,7 +60,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 右カラムの高さを取得して左カラムに反映
+  // 左カラムの高さを右カラムに合わせる
   useEffect(() => {
     if (listRef.current) {
       setPanelHeight(listRef.current.offsetHeight);
@@ -241,10 +242,10 @@ export default function App() {
               border: "1px solid #ddd",
               borderRadius: 8,
               padding: 12,
-              flex: 1,
+              flex: "0 0 auto",
               background: "#fff",
               boxSizing: "border-box",
-              overflow: "visible"
+              overflow: "hidden"
             }}
           >
             <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
@@ -261,10 +262,10 @@ export default function App() {
               border: "1px solid #ddd",
               borderRadius: 8,
               padding: 12,
-              flex: 1,
+              flex: "0 0 auto",
               background: "#fff",
               boxSizing: "border-box",
-              overflow: "auto"
+              overflow: "visible"
             }}
           >
             <h3 style={{ marginTop: 0 }}>{formatShortJP(selectedDate)}</h3>
