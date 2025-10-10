@@ -93,10 +93,18 @@ export default function App() {
     return arr;
   })();
 
-  const isDuplicate = (dateStr, name, excludeId = null) => {
+  const isDuplicate = (name, date, excludeId = null) => {
     return vacations.some((v) => {
       if (excludeId && v.id === excludeId) return false;
-      return v.date === dateStr && v.name === name;
+      // 長期休暇・連休は期間をチェック
+      if (v.type === "連休" || v.type === "長期休暇") {
+        if (v.name !== name) return false;
+        const start = new Date(v.startDate);
+        const end = new Date(v.endDate);
+        const d = new Date(date);
+        return d >= start && d <= end;
+      }
+      return v.name === name && v.date === date;
     });
   };
 
@@ -120,25 +128,37 @@ export default function App() {
           return;
         }
 
-        for (let d = new Date(s); d <= eDate; d.setDate(d.getDate() + 1)) {
-          const dateStr = formatDate(d);
-          if (isDuplicate(dateStr, formData.name, editingId)) continue;
+        if (isDuplicate(formData.name, formData.startDate, editingId)) {
+          alert("同じ名前の期間が重複しています");
+          return;
+        }
 
+        if (editingId) {
+          const ref = doc(db, "vacations", editingId);
+          await updateDoc(ref, {
+            name: formData.name,
+            type: formData.type,
+            reason: formData.reason || null,
+            startDate: formData.startDate,
+            endDate: formData.endDate
+          });
+          setEditingId(null);
+        } else {
           await addDoc(collection(db, "vacations"), {
             name: formData.name,
             type: formData.type,
             reason: formData.reason || null,
-            date: dateStr,
-            startTime: null,
-            endTime: null,
             startDate: formData.startDate,
             endDate: formData.endDate,
+            date: null,
+            startTime: null,
+            endTime: null,
             createdAt: new Date()
           });
         }
       } else {
         const dateStr = formatDate(selectedDate);
-        if (isDuplicate(dateStr, formData.name, editingId)) {
+        if (isDuplicate(formData.name, dateStr, editingId)) {
           alert("同じ日・同じ名前の記録が既にあります。");
           return;
         }
@@ -212,9 +232,21 @@ export default function App() {
 
   const [viewMode, setViewMode] = useState("today");
   const displayed = vacations.filter((v) => {
-    if (!v.date) return false;
-    if (viewMode === "today") return v.date === formatDate(selectedDate);
-    if (viewMode === "month") return Number(v.date.split("-")[1]) === selectedDate.getMonth() + 1;
+    if (!v.date && !(v.startDate && v.endDate)) return false;
+    if (viewMode === "today") {
+      if (v.date) return v.date === formatDate(selectedDate);
+      else {
+        const d = selectedDate;
+        return new Date(v.startDate) <= d && d <= new Date(v.endDate);
+      }
+    }
+    if (viewMode === "month") {
+      const month = selectedDate.getMonth() + 1;
+      if (v.date) return Number(v.date.split("-")[1]) === month;
+      else {
+        return new Date(v.startDate).getMonth() + 1 === month || new Date(v.endDate).getMonth() + 1 === month;
+      }
+    }
     return true;
   });
 
@@ -377,24 +409,28 @@ export default function App() {
 
           <ul style={{ listStyle: "none", padding: 0, marginTop: 12 }}>
             {displayed
-              .sort((a, b) => new Date(a.date) - new Date(b.date))
+              .sort((a, b) => {
+                const aDate = a.date || a.startDate;
+                const bDate = b.date || b.startDate;
+                return new Date(aDate) - new Date(bDate);
+              })
               .map((v) => (
-                <li key={v.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f0f0f0" }}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>
-                      {v.date} / {v.name} <span style={{ color: getColor(v.type) }}>{v.type}</span>
-                    </div>
-                    <div style={{ fontSize: 13, color: "#555" }}>
-                      {v.reason && <div>理由：{v.reason}</div>}
-                      {v.startTime && v.endTime && <div>時間：{v.startTime}〜{v.endTime}</div>}
-                      {v.startDate && v.endDate && <div>期間：{v.startDate}〜{v.endDate}</div>}
-                    </div>
+                <li key={v.id} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 8 }}>
+                  <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
+                    {v.date ? formatShortJP(v.date) : `期間：${formatShortJP(v.startDate)}〜${formatShortJP(v.endDate)}`}
                   </div>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {v.type === "連絡なし" && (
-                      <button onClick={() => handleEdit(v)} style={{ background: "#ffc107", color: "#fff", border: "none", borderRadius: 4, padding: "4px 6px", cursor: "pointer" }}>編集</button>
+                  <div>{v.name} ({v.type})</div>
+                  {v.reason && <div style={{ fontSize: 12, color: "#555" }}>{v.reason}</div>}
+                  <div style={{ marginTop: 4 }}>
+                    {(v.type === "連絡なし") && (
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{ marginRight: 6 }}
+                      >
+                        編集
+                      </button>
                     )}
-                    <button onClick={() => handleDelete(v.id)} style={{ background: "#dc3545", color: "#fff", border: "none", borderRadius: 4, padding: "4px 6px", cursor: "pointer" }}>削除</button>
+                    <button onClick={() => handleDelete(v.id)}>削除</button>
                   </div>
                 </li>
               ))}
