@@ -487,12 +487,9 @@ export default function App() {
               </button>
               <button
                 onClick={() => setViewMode("month")}
-                style={{ marginRight: 6, padding: 6 }}
+                style={{ padding: 6 }}
               >
                 当月
-              </button>
-              <button onClick={() => setViewMode("all")} style={{ padding: 6 }}>
-                全体
               </button>
             </div>
 
@@ -620,8 +617,4 @@ export default function App() {
               ))}
             </ul>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+       
