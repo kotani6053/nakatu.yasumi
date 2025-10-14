@@ -247,6 +247,14 @@ export default function App() {
     }
   };
 
+  // 共通フォームスタイル（名前だけ揃ってなかったので明示的に統一）
+  const controlStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: 8,
+    fontSize: 15,
+  };
+
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: 40, fontSize: "1.1rem" }}>
       <div style={{ display: "flex", gap: 32, width: "100%", maxWidth: 1400 }}>
@@ -268,13 +276,13 @@ export default function App() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                style={{ width: "100%", padding: 8, fontSize: 15 }}
+                style={controlStyle}
               />
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 required
-                style={{ width: "100%", padding: 8, fontSize: 15 }}
+                style={controlStyle}
               >
                 <option value="">選択してください</option>
                 {typeOptions.map((t) => (
@@ -284,7 +292,7 @@ export default function App() {
               <select
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                style={{ width: "100%", padding: 8, fontSize: 15 }}
+                style={controlStyle}
               >
                 <option value="">理由</option>
                 {reasonOptions.map((r) => (
@@ -298,7 +306,7 @@ export default function App() {
                     value={formData.startTime}
                     onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                     required
-                    style={{ width: "100%", padding: 8, fontSize: 15 }}
+                    style={controlStyle}
                   >
                     <option value="">開始時間</option>
                     {timeOptions.map((t) => (
@@ -309,7 +317,7 @@ export default function App() {
                     value={formData.endTime}
                     onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                     required
-                    style={{ width: "100%", padding: 8, fontSize: 15 }}
+                    style={controlStyle}
                   >
                     <option value="">終了時間</option>
                     {timeOptions.map((t) => (
@@ -326,14 +334,14 @@ export default function App() {
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     required
-                    style={{ width: "100%", padding: 8, fontSize: 15 }}
+                    style={controlStyle}
                   />
                   <input
                     type="date"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     required
-                    style={{ width: "100%", padding: 8, fontSize: 15 }}
+                    style={controlStyle}
                   />
                 </>
               )}
