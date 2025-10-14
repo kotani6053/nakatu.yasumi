@@ -247,7 +247,6 @@ export default function App() {
     }
   };
 
-  // 共通フォームスタイル（名前だけ揃ってなかったので明示的に統一）
   const controlStyle = {
     width: "100%",
     boxSizing: "border-box",
@@ -258,18 +257,17 @@ export default function App() {
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: 40, fontSize: "1.1rem" }}>
       <div style={{ display: "flex", gap: 32, width: "100%", maxWidth: 1400 }}>
-        {/* 左：カレンダー＋フォーム */}
+        {/* 左カラム */}
         <div style={{ width: 600, display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff" }}>
-            <h3 style={{ marginTop: 0, marginBottom: 8 }}>カレンダー</h3>
-            <Calendar onChange={setSelectedDate} value={selectedDate} formatDay={(locale, date) => date.getDate()} />
+            <h3>カレンダー</h3>
+            <Calendar onChange={setSelectedDate} value={selectedDate} formatDay={(l, d) => d.getDate()} />
           </div>
 
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff" }}>
-            <h3 style={{ marginTop: 0 }}>{formatShortJP(selectedDate)}</h3>
-            <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
+            <h3>{formatShortJP(selectedDate)}</h3>
+            <h3>{editingId ? "編集中" : "新規入力"}</h3>
 
-            {/* 名前の幅を他と完全に揃えた */}
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <input
                 placeholder="名前"
@@ -300,6 +298,25 @@ export default function App() {
                 ))}
               </select>
 
+              {(formData.type === "連休" || formData.type === "長期休暇") && (
+                <>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    required
+                    style={controlStyle}
+                  />
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    required
+                    style={controlStyle}
+                  />
+                </>
+              )}
+
               {formData.type === "時間単位有給" && (
                 <>
                   <select
@@ -327,25 +344,6 @@ export default function App() {
                 </>
               )}
 
-              {(formData.type === "連休" || formData.type === "長期休暇") && (
-                <>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    required
-                    style={controlStyle}
-                  />
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    required
-                    style={controlStyle}
-                  />
-                </>
-              )}
-
               <button
                 type="submit"
                 style={{
@@ -363,16 +361,13 @@ export default function App() {
           </div>
         </div>
 
-        {/* 右：休暇一覧 */}
+        {/* 右カラム */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* 休暇一覧 */}
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff", flex: 1, overflowY: "auto" }}>
             <div style={{ marginBottom: 12 }}>
-              <button onClick={() => setViewMode("today")} style={{ marginRight: 6, padding: 6 }}>
-                当日
-              </button>
-              <button onClick={() => setViewMode("month")} style={{ padding: 6 }}>
-                当月
-              </button>
+              <button onClick={() => setViewMode("today")} style={{ marginRight: 6, padding: 6 }}>当日</button>
+              <button onClick={() => setViewMode("month")} style={{ padding: 6 }}>当月</button>
             </div>
 
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -392,24 +387,25 @@ export default function App() {
                     <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
                       {v.date && formatShortJP(v.date)} {v.name} ({v.type})
                     </div>
-                    {v.reason && (
-                      <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>
-                    )}
+                    {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
                   </div>
 
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      onClick={() => handleEdit(v)}
-                      style={{
-                        padding: "4px 8px",
-                        backgroundColor: "#2196F3",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 4,
-                      }}
-                    >
-                      編集
-                    </button>
+                    {/* 👇 編集ボタンは「連絡なし」のときのみ表示 */}
+                    {v.type === "連絡なし" && (
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{
+                          padding: "4px 8px",
+                          backgroundColor: "#2196F3",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 4,
+                        }}
+                      >
+                        編集
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(v.id)}
                       style={{
@@ -428,6 +424,7 @@ export default function App() {
             </ul>
           </div>
 
+          {/* 長期休暇・連休 */}
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff", maxHeight: 200, overflowY: "auto" }}>
             <h4 style={{ marginTop: 0 }}>長期休暇・連休</h4>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -451,18 +448,21 @@ export default function App() {
                   </div>
 
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      onClick={() => handleEdit(v)}
-                      style={{
-                        padding: "4px 8px",
-                        backgroundColor: "#2196F3",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 4,
-                      }}
-                    >
-                      編集
-                    </button>
+                    {/* 👇 ここも同じく「連絡なし」なら編集可（ただし長期には普通不要） */}
+                    {v.type === "連絡なし" && (
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{
+                          padding: "4px 8px",
+                          backgroundColor: "#2196F3",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 4,
+                        }}
+                      >
+                        編集
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDelete(v.id)}
                       style={{
