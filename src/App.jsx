@@ -254,6 +254,16 @@ export default function App() {
     fontSize: 15,
   };
 
+  const buttonStyle = (mode) => ({
+    marginRight: 6,
+    padding: "6px 10px",
+    border: "none",
+    borderRadius: 4,
+    color: viewMode === mode ? "#fff" : "#000",
+    backgroundColor: viewMode === mode ? "#2196F3" : "#eee",
+    cursor: "pointer",
+  });
+
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: 40, fontSize: "1.1rem" }}>
       <div style={{ display: "flex", gap: 32, width: "100%", maxWidth: 1400 }}>
@@ -366,8 +376,12 @@ export default function App() {
           {/* 休暇一覧 */}
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff", flex: 1, overflowY: "auto" }}>
             <div style={{ marginBottom: 12 }}>
-              <button onClick={() => setViewMode("today")} style={{ marginRight: 6, padding: 6 }}>当日</button>
-              <button onClick={() => setViewMode("month")} style={{ padding: 6 }}>当月</button>
+              <button style={buttonStyle("today")} onClick={() => setViewMode("today")}>
+                当日
+              </button>
+              <button style={buttonStyle("month")} onClick={() => setViewMode("month")}>
+                当月
+              </button>
             </div>
 
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -386,12 +400,16 @@ export default function App() {
                   <div>
                     <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
                       {v.date && formatShortJP(v.date)} {v.name} ({v.type})
+                      {v.startTime && v.endTime && (
+                        <span style={{ fontSize: 13, marginLeft: 6 }}>
+                          {v.startTime}〜{v.endTime}
+                        </span>
+                      )}
                     </div>
                     {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
                   </div>
 
                   <div style={{ display: "flex", gap: 6 }}>
-                    {/* 👇 編集ボタンは「連絡なし」のときのみ表示 */}
                     {v.type === "連絡なし" && (
                       <button
                         onClick={() => handleEdit(v)}
@@ -416,7 +434,7 @@ export default function App() {
                         borderRadius: 4,
                       }}
                     >
-                      削除
+                        削除
                     </button>
                   </div>
                 </li>
@@ -448,7 +466,6 @@ export default function App() {
                   </div>
 
                   <div style={{ display: "flex", gap: 6 }}>
-                    {/* 👇 ここも同じく「連絡なし」なら編集可（ただし長期には普通不要） */}
                     {v.type === "連絡なし" && (
                       <button
                         onClick={() => handleEdit(v)}
@@ -473,7 +490,7 @@ export default function App() {
                         borderRadius: 4,
                       }}
                     >
-                      削除
+                        削除
                     </button>
                   </div>
                 </li>
