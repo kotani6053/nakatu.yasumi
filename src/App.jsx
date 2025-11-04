@@ -454,51 +454,42 @@ const payload = {
                 </>
               )}
 
- {["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
+{/* 時間を扱う区分のときだけ、開始・終了時間を表示 */}
+{["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
   <>
     <select
       value={formData.startTime}
-      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+      onChange={(e) =>
+        setFormData({ ...formData, startTime: e.target.value })
+      }
       required
       style={controlStyle}
     >
       <option value="">開始時間</option>
       {timeOptions.map((t) => (
-        <option key={t} value={t}>{t}</option>
+        <option key={t} value={t}>
+          {t}
+        </option>
       ))}
     </select>
 
     <select
       value={formData.endTime}
-      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+      onChange={(e) =>
+        setFormData({ ...formData, endTime: e.target.value })
+      }
       required
       style={controlStyle}
     >
       <option value="">終了時間</option>
       {timeOptions.map((t) => (
-        <option key={t} value={t}>{t}</option>
+        <option key={t} value={t}>
+          {t}
+        </option>
       ))}
     </select>
   </>
 )}
-
-
-
-                  <select
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    required
-                    style={controlStyle}
-                  >
-                    <option value="">終了時間</option>
-                    {timeOptions.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
 
               <button
                 type="submit"
