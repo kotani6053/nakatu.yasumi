@@ -163,18 +163,19 @@ export default function App() {
           return;
         }
 
-        const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
-        
-        const payload = {
-          ...formData,
-          date: dateStr,
-          startTime: timeRequired "時間単位有給", "遅刻", "早退", "外出"? formData.startTime : null,
-          endTime: timeRequired "時間単位有給", "遅刻", "早退", "外出"? formData.endTime : null,
-          startDate: null,
-          endDate: null,
-          displayGroup: "normal",
-          createdAt: new Date(),
-        };
+       const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
+
+const payload = {
+  ...formData,
+  date: dateStr,
+  startTime: timeRequired ? formData.startTime : null,
+  endTime: timeRequired ? formData.endTime : null,
+  startDate: null,
+  endDate: null,
+  displayGroup: "normal",
+  createdAt: new Date(),
+};
+
         if (editingId) await updateDoc(doc(db, "vacations", editingId), payload);
         else await addDoc(collection(db, "vacations"), payload);
       }
@@ -453,7 +454,7 @@ export default function App() {
                 </>
               )}
 
-              {["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
+ {["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
   <>
     <select
       value={formData.startTime}
@@ -463,9 +464,7 @@ export default function App() {
     >
       <option value="">開始時間</option>
       {timeOptions.map((t) => (
-        <option key={t} value={t}>
-          {t}
-        </option>
+        <option key={t} value={t}>{t}</option>
       ))}
     </select>
 
@@ -477,13 +476,12 @@ export default function App() {
     >
       <option value="">終了時間</option>
       {timeOptions.map((t) => (
-        <option key={t} value={t}>
-          {t}
-        </option>
+        <option key={t} value={t}>{t}</option>
       ))}
     </select>
   </>
 )}
+
 
 
                   <select
