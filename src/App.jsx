@@ -561,10 +561,18 @@ const payload = {
                       {"　"}
                       {v.name} ({v.type})
                       {/* show time if exists */}
-                      {v.startTime && v.endTime && (
-                        <span style={{ fontSize: 13, marginLeft: 8 }}>
-                          {v.startTime}〜{v.endTime}
-                        </span>
+                     {/* 時間または外勤務の勤務帯を表示 */}
+{v.startTime && v.endTime && (
+  <span style={{ fontSize: 13, marginLeft: 8 }}>
+    {v.startTime}〜{v.endTime}
+  </span>
+)}
+{v.type === "外勤務" && v.workTime && (
+  <span style={{ fontSize: 13, marginLeft: 8 }}>
+    （{v.workTime}）
+  </span>
+)}
+
                       )}
                     </div>
                     {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
