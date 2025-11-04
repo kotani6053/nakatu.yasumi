@@ -573,7 +573,6 @@ const payload = {
   </span>
 )}
 
-                      )}
                     </div>
                     {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
                   </div>
