@@ -18,10 +18,8 @@ export default function App() {
   const [vacations, setVacations] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState(null);
-
-  // viewMode for main (日付ベース一覧) and for long-term area.
-  const [viewMode, setViewMode] = useState("today"); // "today" | "month"
-  const [longViewMode, setLongViewMode] = useState("today"); // for long-term area
+  const [viewMode, setViewMode] = useState("today");
+  const [longViewMode, setLongViewMode] = useState("today");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,7 +29,6 @@ export default function App() {
     endTime: "",
     startDate: "",
     endDate: "",
-    // when long type selected, choose where to display: "long" (長期枠) or "normal" (当日枠)
     displayGroup: "long",
   });
 
@@ -44,9 +41,13 @@ export default function App() {
     "その他",
   ];
 
+  // ✅ 遅刻・早退・外出を追加
   const typeOptions = [
     "有給休暇",
     "時間単位有給",
+    "遅刻",
+    "早退",
+    "外出",
     "欠勤",
     "連絡なし",
     "出張",
@@ -56,7 +57,6 @@ export default function App() {
     "忌引き",
   ];
 
-  // fetch live data ordered by date (some docs have date null – long entries use startDate/endDate)
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -67,13 +67,11 @@ export default function App() {
   }, []);
 
   const formatDate = (d) => {
-    // d may be "2025-10-10" or Date; ensure Date object
     const date = new Date(d);
     if (isNaN(date)) return d;
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate()
+    ).padStart(2, "0")}`;
   };
 
   const formatShortJP = (d) => {
@@ -83,12 +81,10 @@ export default function App() {
     return `${date.getMonth() + 1}月${date.getDate()}日（${w}）`;
   };
 
-  // 6:00 ～ 22:50 (10分刻み)
+  // 6:00～22:50（10分刻み）
   const timeOptions = (() => {
     const arr = [];
-    const start = 6 * 60;
-    const end = 22 * 60 + 50;
-    for (let t = start; t <= end; t += 10) {
+    for (let t = 360; t <= 1370; t += 10) {
       const h = String(Math.floor(t / 60)).padStart(2, "0");
       const m = String(t % 60).padStart(2, "0");
       arr.push(`${h}:${m}`);
@@ -96,20 +92,16 @@ export default function App() {
     return arr;
   })();
 
-  const isDuplicate = (name, date, excludeId = null) => {
-    return vacations.some((v) => {
+  const isDuplicate = (name, date, excludeId = null) =>
+    vacations.some((v) => {
       if (excludeId && v.id === excludeId) return false;
-      // if v is long-type but set to displayGroup normal, it's stored with startDate/endDate
       if ((v.type === "連休" || v.type === "長期休暇" || v.type === "忌引き") && v.displayGroup === "normal") {
         if (v.name !== name) return false;
-        const start = new Date(v.startDate);
-        const end = new Date(v.endDate);
         const d = new Date(date);
-        return d >= start && d <= end;
+        return d >= new Date(v.startDate) && d <= new Date(v.endDate);
       }
       return v.name === name && v.date === date;
     });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,8 +111,7 @@ export default function App() {
     }
 
     try {
-      // If type is period-based: 連休 / 長期休暇 / 忌引き
-      if (formData.type === "連休" || formData.type === "長期休暇" || formData.type === "忌引き") {
+      if (["連休", "長期休暇", "忌引き"].includes(formData.type)) {
         if (!formData.startDate || !formData.endDate) {
           alert("開始日・終了日を入力してください");
           return;
@@ -131,58 +122,40 @@ export default function App() {
           alert("開始日が終了日より後です");
           return;
         }
-
         const payload = {
-          name: formData.name,
-          type: formData.type,
-          reason: formData.reason || null,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          // displayGroup: "long" or "normal"
-          displayGroup: formData.displayGroup === "normal" ? "normal" : "long",
-          // keep date null for period entries
+          ...formData,
           date: null,
           startTime: null,
           endTime: null,
           createdAt: new Date(),
         };
-
-        if (editingId) {
-          await updateDoc(doc(db, "vacations", editingId), payload);
-          setEditingId(null);
-        } else {
-          await addDoc(collection(db, "vacations"), payload);
-        }
+        if (editingId) await updateDoc(doc(db, "vacations", editingId), payload);
+        else await addDoc(collection(db, "vacations"), payload);
       } else {
-        // single-day or time-based entries
         const dateStr = formatDate(selectedDate);
         if (isDuplicate(formData.name, dateStr, editingId)) {
           alert("同じ日・同じ名前の記録が既にあります。");
           return;
         }
 
+        // ✅ 時間指定が必要なタイプ
+        const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
+
         const payload = {
-          name: formData.name,
-          type: formData.type,
-          reason: formData.reason || null,
+          ...formData,
           date: dateStr,
-          startTime: formData.type === "時間単位有給" ? formData.startTime : null,
-          endTime: formData.type === "時間単位有給" ? formData.endTime : null,
-          // single-day entries are in normal display group
-          displayGroup: "normal",
+          startTime: timeRequired ? formData.startTime : null,
+          endTime: timeRequired ? formData.endTime : null,
           startDate: null,
           endDate: null,
+          displayGroup: "normal",
           createdAt: new Date(),
         };
-
-        if (editingId) {
-          await updateDoc(doc(db, "vacations", editingId), payload);
-          setEditingId(null);
-        } else {
-          await addDoc(collection(db, "vacations"), payload);
-        }
+        if (editingId) await updateDoc(doc(db, "vacations", editingId), payload);
+        else await addDoc(collection(db, "vacations"), payload);
       }
 
+      setEditingId(null);
       setFormData({
         name: "",
         type: "",
@@ -194,126 +167,26 @@ export default function App() {
         displayGroup: "long",
       });
     } catch (err) {
-      console.error("保存エラー", err);
+      console.error(err);
       alert("保存に失敗しました");
     }
   };
 
-  const handleEdit = (v) => {
-    setEditingId(v.id);
-    setFormData({
-      name: v.name || "",
-      type: v.type || "",
-      reason: v.reason || "",
-      startTime: v.startTime || "",
-      endTime: v.endTime || "",
-      startDate: v.startDate || "",
-      endDate: v.endDate || "",
-      displayGroup: v.displayGroup || (v.type === "連休" || v.type === "長期休暇" ? "long" : "normal"),
-    });
-    if (v.date) setSelectedDate(new Date(v.date));
-  };
-
   const handleDelete = async (id) => {
-    if (!window.confirm("この記録を削除しますか？")) return;
-    try {
-      await deleteDoc(doc(db, "vacations", id));
-    } catch (err) {
-      console.error("削除失敗", err);
-      alert("削除に失敗しました");
-    }
+    if (!window.confirm("削除しますか？")) return;
+    await deleteDoc(doc(db, "vacations", id));
   };
-
-  // split data
-  const normalVacations = vacations.filter((v) => v.displayGroup !== "long" && v.date); // date-based
-  const longVacations = vacations.filter((v) => v.displayGroup === "long" && v.startDate && v.endDate); // period-based assigned to long area
-
-  // displayed for main date-based list:
-  // includes normalVacations (single-day entries) AND period entries that chose displayGroup: "normal" (their dates cover selected date or month)
-  const periodAsNormal = vacations.filter(
-    (v) =>
-      (v.type === "連休" || v.type === "長期休暇" || v.type === "忌引き") &&
-      v.displayGroup === "normal" &&
-      v.startDate &&
-      v.endDate
-  );
-
-  const displayed = (() => {
-    const todayStr = formatDate(selectedDate);
-    const monthNum = selectedDate.getMonth() + 1;
-    // base: single-day entries
-    let base = normalVacations.slice();
-    if (viewMode === "today") {
-      base = base.filter((v) => v.date === todayStr);
-    } else if (viewMode === "month") {
-      base = base.filter((v) => Number(v.date.split("-")[1]) === monthNum);
-    }
-
-    // include periodAsNormal entries if they intersect
-    const periodIncluded = periodAsNormal.filter((v) => {
-      const start = new Date(v.startDate);
-      const end = new Date(v.endDate);
-      if (viewMode === "today") {
-        const d = new Date(todayStr);
-        return d >= start && d <= end;
-      }
-      if (viewMode === "month") {
-        // include if any day in period is in same month
-        return (
-          start.getMonth() + 1 === monthNum ||
-          end.getMonth() + 1 === monthNum ||
-          (start.getMonth() + 1 < monthNum && end.getMonth() + 1 > monthNum)
-        );
-      }
-      return false;
-    });
-
-    // merge and sort by date (for single-day items) and for period entries sort by startDate then name
-    const merged = [...base, ...periodIncluded];
-
-    // normalize for sort: use v.date for single-day, v.startDate for period (if date absent)
-    merged.sort((a, b) => {
-      const da = a.date ? new Date(a.date) : new Date(a.startDate);
-      const db = b.date ? new Date(b.date) : new Date(b.startDate);
-      if (da - db !== 0) return da - db;
-      // secondary: name
-      return (a.name || "").localeCompare(b.name || "");
-    });
-
-    return merged;
-  })();
-
-  // For longVacations area: filter by longViewMode (today/month), and sort by startDate ascending
-  const displayedLongVacations = (() => {
-    const arr = longVacations.slice().sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-    const monthNum = selectedDate.getMonth() + 1;
-    if (longViewMode === "today") {
-      const today = formatDate(selectedDate);
-      return arr.filter((v) => {
-        const start = new Date(v.startDate);
-        const end = new Date(v.endDate);
-        const d = new Date(today);
-        return d >= start && d <= end;
-      });
-    } else if (longViewMode === "month") {
-      return arr.filter((v) => {
-        const start = new Date(v.startDate);
-        const end = new Date(v.endDate);
-        // include if period intersects month
-        return (
-          start.getMonth() + 1 === monthNum ||
-          end.getMonth() + 1 === monthNum ||
-          (start.getMonth() + 1 < monthNum && end.getMonth() + 1 > monthNum)
-        );
-      });
-    }
-    return arr;
-  })();
 
   const getColor = (type) => {
     switch (type) {
       case "時間単位有給":
         return "blue";
+      case "遅刻":
+        return "purple";
+      case "早退":
+        return "orange";
+      case "外出":
+        return "teal";
       case "欠勤":
         return "red";
       case "連絡なし":
@@ -321,7 +194,7 @@ export default function App() {
       case "出張":
         return "green";
       case "外勤務":
-        return "orange";
+        return "#795548";
       case "忌引き":
         return "black";
       default:
@@ -329,15 +202,8 @@ export default function App() {
     }
   };
 
-  // common input style
-  const controlStyle = {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: 8,
-    fontSize: 15,
-  };
-
-  const buttonStyle = (mode, current = viewMode) => ({
+  const controlStyle = { width: "100%", boxSizing: "border-box", padding: 8, fontSize: 15 };
+  const buttonStyle = (mode, current) => ({
     marginRight: 6,
     padding: "6px 10px",
     border: "none",
