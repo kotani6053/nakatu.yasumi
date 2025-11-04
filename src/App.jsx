@@ -47,6 +47,9 @@ export default function App() {
   const typeOptions = [
     "有給休暇",
     "時間単位有給",
+    "遅刻",
+    "早退",
+    "外出",
     "欠勤",
     "連絡なし",
     "出張",
@@ -161,26 +164,19 @@ export default function App() {
           return;
         }
 
+        const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
         const payload = {
-          name: formData.name,
-          type: formData.type,
-          reason: formData.reason || null,
+          ...formData,
           date: dateStr,
-          startTime: formData.type === "時間単位有給" ? formData.startTime : null,
-          endTime: formData.type === "時間単位有給" ? formData.endTime : null,
-          // single-day entries are in normal display group
-          displayGroup: "normal",
+          startTime: timeRequired ? formData.startTime : null,
+          endTime: timeRequired ? formData.endTime : null,
           startDate: null,
           endDate: null,
+          displayGroup: "normal",
           createdAt: new Date(),
         };
-
-        if (editingId) {
-          await updateDoc(doc(db, "vacations", editingId), payload);
-          setEditingId(null);
-        } else {
-          await addDoc(collection(db, "vacations"), payload);
-        }
+        if (editingId) await updateDoc(doc(db, "vacations", editingId), payload);
+        else await addDoc(collection(db, "vacations"), payload);
       }
 
       setFormData({
@@ -314,6 +310,12 @@ export default function App() {
     switch (type) {
       case "時間単位有給":
         return "blue";
+      case "遅刻":
+        return "purple";
+      case "早退":
+        return "orange";
+      case "外出":
+        return "teal";
       case "欠勤":
         return "red";
       case "連絡なし":
@@ -321,7 +323,7 @@ export default function App() {
       case "出張":
         return "green";
       case "外勤務":
-        return "orange";
+        return "#795548";
       case "忌引き":
         return "black";
       default:
