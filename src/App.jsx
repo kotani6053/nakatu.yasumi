@@ -19,8 +19,9 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingId, setEditingId] = useState(null);
 
-  const [viewMode, setViewMode] = useState("today");
-  const [longViewMode, setLongViewMode] = useState("today");
+  // viewMode for main (日付ベース一覧) and for long-term area.
+  const [viewMode, setViewMode] = useState("today"); // "today" | "month"
+  const [longViewMode, setLongViewMode] = useState("today"); // for long-term area
 
   const [formData, setFormData] = useState({
     name: "",
@@ -30,6 +31,7 @@ export default function App() {
     endTime: "",
     startDate: "",
     endDate: "",
+    // when long type selected, choose where to display: "long" (長期枠) or "normal" (当日枠)
     displayGroup: "long",
   });
 
@@ -42,7 +44,6 @@ export default function App() {
     "その他",
   ];
 
-  // ✅ 「遅刻」「早退」「外出」を追加
   const typeOptions = [
     "有給休暇",
     "時間単位有給",
@@ -53,14 +54,9 @@ export default function App() {
     "連休",
     "長期休暇",
     "忌引き",
-    "遅刻",
-    "早退",
-    "外出",
   ];
 
-  // ✅ 時間入力が必要なタイプをまとめて管理
-  const timeBasedTypes = ["時間単位有給", "遅刻", "早退", "外出"];
-
+  // fetch live data ordered by date (some docs have date null – long entries use startDate/endDate)
   useEffect(() => {
     const q = query(collection(db, "vacations"), orderBy("date"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -71,6 +67,7 @@ export default function App() {
   }, []);
 
   const formatDate = (d) => {
+    // d may be "2025-10-10" or Date; ensure Date object
     const date = new Date(d);
     if (isNaN(date)) return d;
     const y = date.getFullYear();
@@ -86,7 +83,7 @@ export default function App() {
     return `${date.getMonth() + 1}月${date.getDate()}日（${w}）`;
   };
 
-  // 時間リスト（6:00～22:50・10分刻み）
+  // 6:00 ～ 22:50 (10分刻み)
   const timeOptions = (() => {
     const arr = [];
     const start = 6 * 60;
@@ -102,6 +99,7 @@ export default function App() {
   const isDuplicate = (name, date, excludeId = null) => {
     return vacations.some((v) => {
       if (excludeId && v.id === excludeId) return false;
+      // if v is long-type but set to displayGroup normal, it's stored with startDate/endDate
       if ((v.type === "連休" || v.type === "長期休暇" || v.type === "忌引き") && v.displayGroup === "normal") {
         if (v.name !== name) return false;
         const start = new Date(v.startDate);
@@ -121,7 +119,8 @@ export default function App() {
     }
 
     try {
-      if (["連休", "長期休暇", "忌引き"].includes(formData.type)) {
+      // If type is period-based: 連休 / 長期休暇 / 忌引き
+      if (formData.type === "連休" || formData.type === "長期休暇" || formData.type === "忌引き") {
         if (!formData.startDate || !formData.endDate) {
           alert("開始日・終了日を入力してください");
           return;
@@ -139,7 +138,9 @@ export default function App() {
           reason: formData.reason || null,
           startDate: formData.startDate,
           endDate: formData.endDate,
+          // displayGroup: "long" or "normal"
           displayGroup: formData.displayGroup === "normal" ? "normal" : "long",
+          // keep date null for period entries
           date: null,
           startTime: null,
           endTime: null,
@@ -153,21 +154,21 @@ export default function App() {
           await addDoc(collection(db, "vacations"), payload);
         }
       } else {
+        // single-day or time-based entries
         const dateStr = formatDate(selectedDate);
         if (isDuplicate(formData.name, dateStr, editingId)) {
           alert("同じ日・同じ名前の記録が既にあります。");
           return;
         }
 
-        const isTimeBased = timeBasedTypes.includes(formData.type);
-
         const payload = {
           name: formData.name,
           type: formData.type,
           reason: formData.reason || null,
           date: dateStr,
-          startTime: isTimeBased ? formData.startTime : null,
-          endTime: isTimeBased ? formData.endTime : null,
+          startTime: formData.type === "時間単位有給" ? formData.startTime : null,
+          endTime: formData.type === "時間単位有給" ? formData.endTime : null,
+          // single-day entries are in normal display group
           displayGroup: "normal",
           startDate: null,
           endDate: null,
@@ -223,9 +224,12 @@ export default function App() {
     }
   };
 
-  const normalVacations = vacations.filter((v) => v.displayGroup !== "long" && v.date);
-  const longVacations = vacations.filter((v) => v.displayGroup === "long" && v.startDate && v.endDate);
+  // split data
+  const normalVacations = vacations.filter((v) => v.displayGroup !== "long" && v.date); // date-based
+  const longVacations = vacations.filter((v) => v.displayGroup === "long" && v.startDate && v.endDate); // period-based assigned to long area
 
+  // displayed for main date-based list:
+  // includes normalVacations (single-day entries) AND period entries that chose displayGroup: "normal" (their dates cover selected date or month)
   const periodAsNormal = vacations.filter(
     (v) =>
       (v.type === "連休" || v.type === "長期休暇" || v.type === "忌引き") &&
@@ -237,6 +241,7 @@ export default function App() {
   const displayed = (() => {
     const todayStr = formatDate(selectedDate);
     const monthNum = selectedDate.getMonth() + 1;
+    // base: single-day entries
     let base = normalVacations.slice();
     if (viewMode === "today") {
       base = base.filter((v) => v.date === todayStr);
@@ -244,6 +249,7 @@ export default function App() {
       base = base.filter((v) => Number(v.date.split("-")[1]) === monthNum);
     }
 
+    // include periodAsNormal entries if they intersect
     const periodIncluded = periodAsNormal.filter((v) => {
       const start = new Date(v.startDate);
       const end = new Date(v.endDate);
@@ -252,6 +258,7 @@ export default function App() {
         return d >= start && d <= end;
       }
       if (viewMode === "month") {
+        // include if any day in period is in same month
         return (
           start.getMonth() + 1 === monthNum ||
           end.getMonth() + 1 === monthNum ||
@@ -261,17 +268,22 @@ export default function App() {
       return false;
     });
 
+    // merge and sort by date (for single-day items) and for period entries sort by startDate then name
     const merged = [...base, ...periodIncluded];
+
+    // normalize for sort: use v.date for single-day, v.startDate for period (if date absent)
     merged.sort((a, b) => {
       const da = a.date ? new Date(a.date) : new Date(a.startDate);
       const db = b.date ? new Date(b.date) : new Date(b.startDate);
       if (da - db !== 0) return da - db;
+      // secondary: name
       return (a.name || "").localeCompare(b.name || "");
     });
 
     return merged;
   })();
 
+  // For longVacations area: filter by longViewMode (today/month), and sort by startDate ascending
   const displayedLongVacations = (() => {
     const arr = longVacations.slice().sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
     const monthNum = selectedDate.getMonth() + 1;
@@ -287,6 +299,7 @@ export default function App() {
       return arr.filter((v) => {
         const start = new Date(v.startDate);
         const end = new Date(v.endDate);
+        // include if period intersects month
         return (
           start.getMonth() + 1 === monthNum ||
           end.getMonth() + 1 === monthNum ||
@@ -301,12 +314,6 @@ export default function App() {
     switch (type) {
       case "時間単位有給":
         return "blue";
-      case "遅刻":
-        return "purple";
-      case "早退":
-        return "brown";
-      case "外出":
-        return "teal";
       case "欠勤":
         return "red";
       case "連絡なし":
@@ -322,6 +329,7 @@ export default function App() {
     }
   };
 
+  // common input style
   const controlStyle = {
     width: "100%",
     boxSizing: "border-box",
@@ -354,6 +362,7 @@ export default function App() {
             <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* 名前 */}
               <input
                 placeholder="名前"
                 value={formData.name}
@@ -362,13 +371,16 @@ export default function App() {
                 style={controlStyle}
               />
 
+              {/* type */}
               <select
                 value={formData.type}
                 onChange={(e) => {
                   const val = e.target.value;
+                  // default displayGroup: long for long types, normal for others
                   setFormData({
                     ...formData,
                     type: val,
+                    // reset times/dates properly
                     startTime: "",
                     endTime: "",
                     startDate: "",
@@ -387,6 +399,7 @@ export default function App() {
                 ))}
               </select>
 
+              {/* reason */}
               <select
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
@@ -400,6 +413,8 @@ export default function App() {
                 ))}
               </select>
 
+              {/* If type is long/period (連休/長期休暇/忌引き) show start/end and displayGroup selector.
+                  For 忌引き we default displayGroup to "normal" but allow changing if you want. */}
               {(formData.type === "連休" || formData.type === "長期休暇" || formData.type === "忌引き") && (
                 <>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -436,8 +451,8 @@ export default function App() {
                 </>
               )}
 
-              {/* ✅ 時間単位有給／遅刻／早退／外出：時間入力 */}
-              {timeBasedTypes.includes(formData.type) && (
+              {/* 時間単位有給 */}
+              {formData.type === "時間単位有給" && (
                 <>
                   <select
                     value={formData.startTime}
@@ -488,6 +503,7 @@ export default function App() {
 
         {/* 右：休暇一覧 */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* 日付ベース一覧（当日/当月） */}
           <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff", flex: 1, overflowY: "auto" }}>
             <div style={{ marginBottom: 12 }}>
               <button style={buttonStyle("today", viewMode)} onClick={() => setViewMode("today")}>
@@ -498,72 +514,138 @@ export default function App() {
               </button>
             </div>
 
-            {displayed.length === 0 ? (
-              <p style={{ color: "#777" }}>該当データがありません</p>
-            ) : (
-              displayed.map((v) => (
-                <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {displayed.length === 0 && <li style={{ color: "#666" }}>該当する休暇はありません。</li>}
+              {displayed.map((v) => (
+                <li
+                  key={v.id}
+                  style={{
+                    marginBottom: 12,
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: 6,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <div>
-                    <span style={{ color: getColor(v.type), fontWeight: 600 }}>{v.name}</span>：
-                    {v.type}
-                    {v.startTime && v.endTime && (
-                      <span>
-                        {" "}
-                        （{v.startTime}〜{v.endTime}）
-                      </span>
-                    )}
-                    {v.reason && (
-                      <span style={{ color: "#555" }}>（{v.reason}）</span>
-                    )}
-                    {v.startDate && v.endDate && (
-                      <span>
-                        {" "}
-                        [{formatShortJP(v.startDate)}〜{formatShortJP(v.endDate)}]
-                      </span>
-                    )}
+                    <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
+                      {/* show date or startDate if period */}
+                      {(v.date && formatShortJP(v.date)) ||
+                        (v.startDate && `${formatShortJP(v.startDate)}〜${formatShortJP(v.endDate)}`)}
+                      {"　"}
+                      {v.name} ({v.type})
+                      {/* show time if exists */}
+                      {v.startTime && v.endTime && (
+                        <span style={{ fontSize: 13, marginLeft: 8 }}>
+                          {v.startTime}〜{v.endTime}
+                        </span>
+                      )}
+                    </div>
+                    {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
                   </div>
-                  <div>
-                    <button onClick={() => handleEdit(v)} style={{ marginRight: 6 }}>
-                      編集
+
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {/* 編集は「連絡なし」のみ */}
+                    {v.type === "連絡なし" && (
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{
+                          padding: "4px 8px",
+                          backgroundColor: "#2196F3",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 4,
+                        }}
+                      >
+                        編集
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(v.id)}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: "#f44336",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 4,
+                      }}
+                    >
+                      削除
                     </button>
-                    <button onClick={() => handleDelete(v.id)}>削除</button>
                   </div>
-                </div>
-              ))
-            )}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff", flex: 1, overflowY: "auto" }}>
-            <div style={{ marginBottom: 12 }}>
-              <button style={buttonStyle("today", longViewMode)} onClick={() => setLongViewMode("today")}>
-                当日
-              </button>
-              <button style={buttonStyle("month", longViewMode)} onClick={() => setLongViewMode("month")}>
-                当月
-              </button>
+          {/* 長期休暇・連休枠（右下段） */}
+          <div style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, background: "#fff", maxHeight: 300, overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <h4 style={{ margin: 0 }}>長期休暇・連休</h4>
+              <div>
+                <button style={buttonStyle("today", longViewMode)} onClick={() => setLongViewMode("today")}>
+                  当日
+                </button>
+                <button style={buttonStyle("month", longViewMode)} onClick={() => setLongViewMode("month")}>
+                  当月
+                </button>
+              </div>
             </div>
 
-            {displayedLongVacations.length === 0 ? (
-              <p style={{ color: "#777" }}>該当データがありません</p>
-            ) : (
-              displayedLongVacations.map((v) => (
-                <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {displayedLongVacations.length === 0 && <li style={{ color: "#666" }}>該当する長期休暇はありません。</li>}
+              {displayedLongVacations.map((v) => (
+                <li
+                  key={v.id}
+                  style={{
+                    marginBottom: 12,
+                    borderBottom: "1px solid #eee",
+                    paddingBottom: 6,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <div>
-                    <span style={{ color: getColor(v.type), fontWeight: 600 }}>{v.name}</span>：
-                    {v.type} [{formatShortJP(v.startDate)}〜{formatShortJP(v.endDate)}]
-                    {v.reason && (
-                      <span style={{ color: "#555" }}>（{v.reason}）</span>
+                    <div style={{ fontWeight: "bold" }}>
+                      {formatShortJP(v.startDate)}～{formatShortJP(v.endDate)} {v.name} ({v.type})
+                    </div>
+                    {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {/* 編集 only if連絡なし (but long entries rarely are連絡なし) */}
+                    {v.type === "連絡なし" && (
+                      <button
+                        onClick={() => handleEdit(v)}
+                        style={{
+                          padding: "4px 8px",
+                          backgroundColor: "#2196F3",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 4,
+                        }}
+                      >
+                        編集
+                      </button>
                     )}
-                  </div>
-                  <div>
-                    <button onClick={() => handleEdit(v)} style={{ marginRight: 6 }}>
-                      編集
+                    <button
+                      onClick={() => handleDelete(v.id)}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: "#f44336",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 4,
+                      }}
+                    >
+                      削除
                     </button>
-                    <button onClick={() => handleDelete(v.id)}>削除</button>
                   </div>
-                </div>
-              ))
-            )}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
