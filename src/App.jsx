@@ -454,7 +454,7 @@ const payload = {
                 </>
               )}
 
-{/* 時間を扱う区分のときだけ、開始・終了時間を表示 */}
+{/* 時間を扱う区分（時間単位有給・遅刻・早退・外出）のとき */}
 {["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
   <>
     <select
@@ -490,6 +490,24 @@ const payload = {
     </select>
   </>
 )}
+
+{/* 外勤務のときだけ 午前／午後／終日 を表示 */}
+{formData.type === "外勤務" && (
+  <select
+    value={formData.workTime || ""}
+    onChange={(e) =>
+      setFormData({ ...formData, workTime: e.target.value })
+    }
+    required
+    style={controlStyle}
+  >
+    <option value="">勤務時間帯を選択</option>
+    <option value="午前中">午前中</option>
+    <option value="午後中">午後中</option>
+    <option value="終日">終日</option>
+  </select>
+)}
+
 
               <button
                 type="submit"
