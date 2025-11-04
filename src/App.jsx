@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -165,11 +164,12 @@ export default function App() {
         }
 
         const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
+        
         const payload = {
           ...formData,
           date: dateStr,
-          startTime: timeRequired ? formData.startTime : null,
-          endTime: timeRequired ? formData.endTime : null,
+          startTime: timeRequired "時間単位有給", "遅刻", "早退", "外出"? formData.startTime : null,
+          endTime: timeRequired "時間単位有給", "遅刻", "早退", "外出"? formData.endTime : null,
           startDate: null,
           endDate: null,
           displayGroup: "normal",
@@ -453,8 +453,8 @@ export default function App() {
                 </>
               )}
 
-              {/* 時間単位有給 */}
-              {formData.type === "時間単位有給" && (
+              {/* 時間単位有給, 遅刻, 早退, 外出 */}
+              {formData.type === "時間単位有給", "遅刻", "早退", "外出" && (
                 <>
                   <select
                     value={formData.startTime}
