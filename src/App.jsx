@@ -58,13 +58,14 @@ export default function App() {
     "忌引き",
   ];
 
- useEffect(() => {
-  const q = query(collection(db, "vacations"), orderBy("date"));
-  const unsubscribe = onSnapshot(q, (snapshot) => {
+useEffect(() => {
+  const fetchData = async () => {
+    const snapshot = await getDocs(collection(db, "vacations"));
     const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     setVacations(data);
-  });
-  return () => unsubscribe();
+  };
+
+  fetchData();
 }, []);
 
 
