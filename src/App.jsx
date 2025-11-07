@@ -58,15 +58,17 @@ export default function App() {
     "忌引き",
   ];
 
-  // fetch live data ordered by date (some docs have date null – long entries use startDate/endDate)
-  useEffect(() => {
+ useEffect(() => {
+  const fetchData = async () => {
     const q = query(collection(db, "vacations"), orderBy("date"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setVacations(data);
-    });
-    return () => unsubscribe();
-  }, []);
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    setVacations(data);
+  };
+
+  fetchData();
+}, []);
+
 
   const formatDate = (d) => {
     // d may be "2025-10-10" or Date; ensure Date object
