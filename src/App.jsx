@@ -59,15 +59,14 @@ export default function App() {
   ];
 
  useEffect(() => {
-  const fetchData = async () => {
-    const q = query(collection(db, "vacations"), orderBy("date"));
-    const snapshot = await getDocs(q);
+  const q = query(collection(db, "vacations"), orderBy("date"));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
     const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     setVacations(data);
-  };
-
-  fetchData();
+  });
+  return () => unsubscribe();
 }, []);
+
 
 
   const formatDate = (d) => {
