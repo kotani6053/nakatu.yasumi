@@ -758,25 +758,23 @@ export default function App() {
           font-size: 13px;
         }
         
-        /* 🗓️ 曜日見出しの土日色分け */
-        .react-calendar__month-view__weekdays__weekday--sat abbr {
-          color: #2563eb !important; /* 落ち着いた青 */
-        }
-        .react-calendar__month-view__weekdays__weekday--sun abbr {
-          color: #dc2626 !important; /* 落ち着いた赤 */
-        }
+       /* 🗓️ 曜日見出しの土日色分け */
+.react-calendar__month-view__weekdays__weekday--sat abbr {
+  color: #2563eb !important; /* 土曜：青 */
+}
 
-        /* 🗓️ 各日付タイルの土日色分け (※アクティブ時は白文字を優先) */
-        .react-calendar__month-view__days__day:not(.react-calendar__tile--active) {
-          /* 日曜日(7の倍数+1番目・標準配置用) */
-          &:nth-child(7n+1) {
-            color: #dc2626 !important;
-          }
-          /* 土曜日(7の倍数番目) */
-          &:nth-child(7n) {
-            color: #2563eb !important;
-          }
-        }
+.react-calendar__month-view__weekdays__weekday--sun abbr {
+  color: #dc2626 !important; /* 日曜：赤 */
+}
+
+/* 🗓️ 日付部分の土日色分け */
+.react-calendar__month-view__days__day--weekend:not(.react-calendar__tile--active) {
+  color: #dc2626 !important;
+}
+
+.react-calendar__month-view__days__day--weekend:nth-child(7n):not(.react-calendar__tile--active) {
+  color: #2563eb !important;
+}
 
         .react-calendar__tile {
           padding: 12px 8px !important;
