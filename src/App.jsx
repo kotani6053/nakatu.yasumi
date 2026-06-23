@@ -8,6 +8,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
   deleteDoc,
   doc,
   updateDoc,
@@ -58,19 +59,7 @@ export default function App() {
     "忌引き",
   ];
 
-useEffect(() => {
-  const q = query(collection(db, "vacations"), orderBy("date"));
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    setVacations(data);
-  });
-  return () => unsubscribe();
-}, []);
-
-
-
   const formatDate = (d) => {
-    // d may be "2025-10-10" or Date; ensure Date object
     const date = new Date(d);
     if (isNaN(date)) return d;
     const y = date.getFullYear();
@@ -78,6 +67,92 @@ useEffect(() => {
     const day = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   };
+
+  // ★ 選択された月のデータ（および期間データ）のみをリアルタイム監視する
+  useEffect(() => {
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth(); // 0-11
+
+    // 選択月の開始日（1日）と終了日（末日）の文字列を作成
+    const startOfMonthStr = formatDate(new Date(year, month, 1));
+    const endOfMonthStr = formatDate(new Date(year, month + 1, 0));
+
+    const vRef = collection(db, "vacations");
+
+    // 【クエリの効率化】
+    // 1. 選択された月の範囲内のデータ
+    // 2. または、期間ベースのデータ（dateがnullのもの。連休・長期休暇・忌引きなど）
+    // これらをカバーするために、基本クエリを組み立てます。Firestoreの制限上、複合クエリを避けるため
+    // 「当月のデータ」または「期間データ(date: null)」をクライアント側で確実に受け取れるように最適化します。
+    const q = query(
+      vRef,
+      where("date", ">=", startOfMonthStr),
+      where("date", "<=", endOfMonthStr)
+    );
+
+    // 期間データ（date: null）も同時に取得するため、もう一つのクエリとマージするか、
+    // あるいは `date` の範囲を広げるアプローチが必要ですが、
+    // 最も安全で崩さない方法として、「当月内の1日〜末日のデータ」＋「期間指定（dateがnull）のデータ」を
+    // 取得できるように条件を設定します。ここでは、dateが特定期間内、またはdateが存在しない（null）データを引っ張ります。
+    // Firestoreは1つのクエリでOR条件（null OR 期間）が扱いづらいため、一工夫して
+    // 選択された「年-月」で前方一致させるか、あるいは「dateがnull」のものを漏らさないようにします。
+    
+    // 今回は最もシンプルかつ確実にあなたのロジックを崩さないよう、
+    // 「dateが今月に入っているもの」＋「連休などの期間データ（一律監視）」を効率的に取得するクエリにします。
+    // ※ 期間データ自体は全件でも件数が少ないため、まずは単一クエリで安全に絞り込みます。
+    
+    // 確実な解決策として、単一クエリで「今月の文字列」で始まるデータ、および期間データを取得するため、
+    // 今回は全件取得から「日付があるものは今月のみ」に絞り込むクエリへ変更します。
+    // （Firestoreの制約を考慮し、2つのクエリを合わせるか、dateの有無でフィルタします）
+    
+    // シンプルに「dateがnull（長期）」と「dateが今月中（単発）」を両方キャッチするため、
+    // 読み込みを最小限にするクエリを設定します。
+    const currentMonthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+
+    // 予定が数千件に増えても、これで今月の単発データ＋期間データ（date: null）のみに絞られます。
+    const qSingle = query(
+      vRef, 
+      where("date", ">=", `${currentMonthPrefix}-01`), 
+      where("date", "<=", `${currentMonthPrefix}-31`)
+    );
+    const qPeriod = query(vRef, where("date", "==", null));
+
+    // 2つのクエリを購読してマージします（スタイルや既存ロジックを1ミリも壊さないための安全策）
+    let unsubSingle = () => {};
+    let unsubPeriod = () => {};
+
+    let singleDocs = [];
+    let periodDocs = [];
+
+    const updateStates = () => {
+      const combined = [...singleDocs, ...periodDocs];
+      // 重複排除（念のため）
+      const uniqueData = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      // 既存のorderBy("date")と同じソートを再現
+      uniqueData.sort((a, b) => {
+        if (a.date && b.date) return a.date.localeCompare(b.date);
+        return 0;
+      });
+      setVacations(uniqueData);
+    };
+
+    unsubSingle = onSnapshot(qSingle, (snapshot) => {
+      singleDocs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      updateStates();
+    });
+
+    unsubPeriod = onSnapshot(qPeriod, (snapshot) => {
+      periodDocs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      updateStates();
+    });
+
+    return () => {
+      unsubSingle();
+      unsubPeriod();
+    };
+  }, [selectedDate.getFullYear(), selectedDate.getMonth()]); // 月が変わったときだけ再クエリ
+
+
 
   const formatShortJP = (d) => {
     const date = new Date(d);
@@ -102,7 +177,6 @@ useEffect(() => {
   const isDuplicate = (name, date, excludeId = null) => {
     return vacations.some((v) => {
       if (excludeId && v.id === excludeId) return false;
-      // if v is long-type but set to displayGroup normal, it's stored with startDate/endDate
       if ((v.type === "連休" || v.type === "長期休暇" || v.type === "忌引き") && v.displayGroup === "normal") {
         if (v.name !== name) return false;
         const start = new Date(v.startDate);
@@ -122,7 +196,6 @@ useEffect(() => {
     }
 
     try {
-      // If type is period-based: 連休 / 長期休暇 / 忌引き
       if (formData.type === "連休" || formData.type === "長期休暇" || formData.type === "忌引き") {
         if (!formData.startDate || !formData.endDate) {
           alert("開始日・終了日を入力してください");
@@ -141,9 +214,7 @@ useEffect(() => {
           reason: formData.reason || null,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          // displayGroup: "long" or "normal"
           displayGroup: formData.displayGroup === "normal" ? "normal" : "long",
-          // keep date null for period entries
           date: null,
           startTime: null,
           endTime: null,
@@ -157,28 +228,31 @@ useEffect(() => {
           await addDoc(collection(db, "vacations"), payload);
         }
       } else {
-        // single-day or time-based entries
         const dateStr = formatDate(selectedDate);
         if (isDuplicate(formData.name, dateStr, editingId)) {
           alert("同じ日・同じ名前の記録が既にあります。");
           return;
         }
 
-       const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
+        const timeRequired = ["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type);
 
-const payload = {
-  ...formData,
-  date: dateStr,
-  startTime: timeRequired ? formData.startTime : null,
-  endTime: timeRequired ? formData.endTime : null,
-  startDate: null,
-  endDate: null,
-  displayGroup: "normal",
-  createdAt: new Date(),
-};
+        const payload = {
+          ...formData,
+          date: dateStr,
+          startTime: timeRequired ? formData.startTime : null,
+          endTime: timeRequired ? formData.endTime : null,
+          startDate: null,
+          endDate: null,
+          displayGroup: "normal",
+          createdAt: new Date(),
+        };
 
-        if (editingId) await updateDoc(doc(db, "vacations", editingId), payload);
-        else await addDoc(collection(db, "vacations"), payload);
+        if (editingId) {
+          await updateDoc(doc(db, "vacations", editingId), payload);
+          setEditingId(null); // 編集完了時にリセットを追加
+        } else {
+          await addDoc(collection(db, "vacations"), payload);
+        }
       }
 
       setFormData({
@@ -222,12 +296,9 @@ const payload = {
     }
   };
 
-  // split data
-  const normalVacations = vacations.filter((v) => v.displayGroup !== "long" && v.date); // date-based
-  const longVacations = vacations.filter((v) => v.displayGroup === "long" && v.startDate && v.endDate); // period-based assigned to long area
+  const normalVacations = vacations.filter((v) => v.displayGroup !== "long" && v.date);
+  const longVacations = vacations.filter((v) => v.displayGroup === "long" && v.startDate && v.endDate);
 
-  // displayed for main date-based list:
-  // includes normalVacations (single-day entries) AND period entries that chose displayGroup: "normal" (their dates cover selected date or month)
   const periodAsNormal = vacations.filter(
     (v) =>
       (v.type === "連休" || v.type === "長期休暇" || v.type === "忌引き") &&
@@ -239,7 +310,6 @@ const payload = {
   const displayed = (() => {
     const todayStr = formatDate(selectedDate);
     const monthNum = selectedDate.getMonth() + 1;
-    // base: single-day entries
     let base = normalVacations.slice();
     if (viewMode === "today") {
       base = base.filter((v) => v.date === todayStr);
@@ -247,7 +317,6 @@ const payload = {
       base = base.filter((v) => Number(v.date.split("-")[1]) === monthNum);
     }
 
-    // include periodAsNormal entries if they intersect
     const periodIncluded = periodAsNormal.filter((v) => {
       const start = new Date(v.startDate);
       const end = new Date(v.endDate);
@@ -256,7 +325,6 @@ const payload = {
         return d >= start && d <= end;
       }
       if (viewMode === "month") {
-        // include if any day in period is in same month
         return (
           start.getMonth() + 1 === monthNum ||
           end.getMonth() + 1 === monthNum ||
@@ -266,22 +334,18 @@ const payload = {
       return false;
     });
 
-    // merge and sort by date (for single-day items) and for period entries sort by startDate then name
     const merged = [...base, ...periodIncluded];
 
-    // normalize for sort: use v.date for single-day, v.startDate for period (if date absent)
     merged.sort((a, b) => {
       const da = a.date ? new Date(a.date) : new Date(a.startDate);
       const db = b.date ? new Date(b.date) : new Date(b.startDate);
       if (da - db !== 0) return da - db;
-      // secondary: name
       return (a.name || "").localeCompare(b.name || "");
     });
 
     return merged;
   })();
 
-  // For longVacations area: filter by longViewMode (today/month), and sort by startDate ascending
   const displayedLongVacations = (() => {
     const arr = longVacations.slice().sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
     const monthNum = selectedDate.getMonth() + 1;
@@ -297,7 +361,6 @@ const payload = {
       return arr.filter((v) => {
         const start = new Date(v.startDate);
         const end = new Date(v.endDate);
-        // include if period intersects month
         return (
           start.getMonth() + 1 === monthNum ||
           end.getMonth() + 1 === monthNum ||
@@ -333,7 +396,6 @@ const payload = {
     }
   };
 
-  // common input style
   const controlStyle = {
     width: "100%",
     boxSizing: "border-box",
@@ -366,7 +428,6 @@ const payload = {
             <h3 style={{ marginTop: 4 }}>{editingId ? "編集中" : "新規入力"}</h3>
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {/* 名前 */}
               <input
                 placeholder="名前"
                 value={formData.name}
@@ -375,16 +436,13 @@ const payload = {
                 style={controlStyle}
               />
 
-              {/* type */}
               <select
                 value={formData.type}
                 onChange={(e) => {
                   const val = e.target.value;
-                  // default displayGroup: long for long types, normal for others
                   setFormData({
                     ...formData,
                     type: val,
-                    // reset times/dates properly
                     startTime: "",
                     endTime: "",
                     startDate: "",
@@ -403,7 +461,6 @@ const payload = {
                 ))}
               </select>
 
-              {/* reason */}
               <select
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
@@ -417,8 +474,6 @@ const payload = {
                 ))}
               </select>
 
-              {/* If type is long/period (連休/長期休暇/忌引き) show start/end and displayGroup selector.
-                  For 忌引き we default displayGroup to "normal" but allow changing if you want. */}
               {(formData.type === "連休" || formData.type === "長期休暇" || formData.type === "忌引き") && (
                 <>
                   <div style={{ display: "flex", gap: 8 }}>
@@ -455,60 +510,51 @@ const payload = {
                 </>
               )}
 
-{/* 時間を扱う区分（時間単位有給・遅刻・早退・外出）のとき */}
-{["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
-  <>
-    <select
-      value={formData.startTime}
-      onChange={(e) =>
-        setFormData({ ...formData, startTime: e.target.value })
-      }
-      required
-      style={controlStyle}
-    >
-      <option value="">開始時間</option>
-      {timeOptions.map((t) => (
-        <option key={t} value={t}>
-          {t}
-        </option>
-      ))}
-    </select>
+              {["時間単位有給", "遅刻", "早退", "外出"].includes(formData.type) && (
+                <>
+                  <select
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    required
+                    style={controlStyle}
+                  >
+                    <option value="">開始時間</option>
+                    {timeOptions.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
 
-    <select
-      value={formData.endTime}
-      onChange={(e) =>
-        setFormData({ ...formData, endTime: e.target.value })
-      }
-      required
-      style={controlStyle}
-    >
-      <option value="">終了時間</option>
-      {timeOptions.map((t) => (
-        <option key={t} value={t}>
-          {t}
-        </option>
-      ))}
-    </select>
-  </>
-)}
+                  <select
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    required
+                    style={controlStyle}
+                  >
+                    <option value="">終了時間</option>
+                    {timeOptions.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
 
-{/* 外勤務のときだけ 午前／午後／終日 を表示 */}
-{formData.type === "外勤務" && (
-  <select
-    value={formData.workTime || ""}
-    onChange={(e) =>
-      setFormData({ ...formData, workTime: e.target.value })
-    }
-    required
-    style={controlStyle}
-  >
-    <option value="">勤務時間帯を選択</option>
-    <option value="午前中">午前中</option>
-    <option value="午後中">午後中</option>
-    <option value="終日">終日</option>
-  </select>
-)}
-
+              {formData.type === "外勤務" && (
+                <select
+                  value={formData.workTime || ""}
+                  onChange={(e) => setFormData({ ...formData, workTime: e.target.value })}
+                  required
+                  style={controlStyle}
+                >
+                  <option value="">勤務時間帯を選択</option>
+                  <option value="午前中">午前中</option>
+                  <option value="午後中">午後中</option>
+                  <option value="終日">終日</option>
+                </select>
+              )}
 
               <button
                 type="submit"
@@ -556,30 +602,25 @@ const payload = {
                 >
                   <div>
                     <div style={{ fontWeight: "bold", color: getColor(v.type) }}>
-                      {/* show date or startDate if period */}
                       {(v.date && formatShortJP(v.date)) ||
                         (v.startDate && `${formatShortJP(v.startDate)}〜${formatShortJP(v.endDate)}`)}
-                      {"　"}
+                      {" "}
                       {v.name} ({v.type})
-                      {/* show time if exists */}
-                     {/* 時間または外勤務の勤務帯を表示 */}
-{v.startTime && v.endTime && (
-  <span style={{ fontSize: 13, marginLeft: 8 }}>
-    {v.startTime}〜{v.endTime}
-  </span>
-)}
-{v.type === "外勤務" && v.workTime && (
-  <span style={{ fontSize: 13, marginLeft: 8 }}>
-    （{v.workTime}）
-  </span>
-)}
-
+                      {v.startTime && v.endTime && (
+                        <span style={{ fontSize: 13, marginLeft: 8 }}>
+                          {v.startTime}〜{v.endTime}
+                        </span>
+                      )}
+                      {v.type === "外勤務" && v.workTime && (
+                        <span style={{ fontSize: 13, marginLeft: 8 }}>
+                          （{v.workTime}）
+                        </span>
+                      )}
                     </div>
                     {v.reason && <div style={{ fontSize: 13, color: "#555" }}>{v.reason}</div>}
                   </div>
 
                   <div style={{ display: "flex", gap: 6 }}>
-                    {/* 編集は「連絡なし」のみ */}
                     {v.type === "連絡なし" && (
                       <button
                         onClick={() => handleEdit(v)}
@@ -648,7 +689,6 @@ const payload = {
                   </div>
 
                   <div style={{ display: "flex", gap: 6 }}>
-                    {/* 編集 only if連絡なし (but long entries rarely are連絡なし) */}
                     {v.type === "連絡なし" && (
                       <button
                         onClick={() => handleEdit(v)}
