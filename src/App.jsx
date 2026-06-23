@@ -758,21 +758,27 @@ export default function App() {
           font-size: 13px;
         }
         
-       /* 🗓️ 曜日見出しの土日色分け */
-.react-calendar__month-view__weekdays__weekday--sat abbr {
-  color: #2563eb !important; /* 土曜：青 */
-}
-
+/* 曜日見出し */
 .react-calendar__month-view__weekdays__weekday--sun abbr {
   color: #dc2626 !important; /* 日曜：赤 */
 }
 
-/* 🗓️ 日付部分の土日色分け */
+.react-calendar__month-view__weekdays__weekday--sat abbr {
+  color: #2563eb !important; /* 土曜：青 */
+}
+
+/* 日付部分 */
 .react-calendar__month-view__days__day--weekend:not(.react-calendar__tile--active) {
+  color: inherit !important;
+}
+
+/* 日曜日（左端） */
+.react-calendar__month-view__days__day:nth-child(7n + 1):not(.react-calendar__tile--active) {
   color: #dc2626 !important;
 }
 
-.react-calendar__month-view__days__day--weekend:nth-child(7n):not(.react-calendar__tile--active) {
+/* 土曜日（右端） */
+.react-calendar__month-view__days__day:nth-child(7n):not(.react-calendar__tile--active) {
   color: #2563eb !important;
 }
 
