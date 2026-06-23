@@ -664,11 +664,18 @@ export default function App() {
           <div style={{ ...cardStyle, flex: "0 0 auto" }}>
             <h3 style={sectionTitleStyle}>カレンダー表示</h3>
             <div className="modern-calendar-wrapper">
-              <Calendar 
-                onChange={setSelectedDate} 
-                value={selectedDate} 
-                formatDay={(locale, date) => date.getDate()} 
-              />
+             <Calendar
+  onChange={setSelectedDate}
+  value={selectedDate}
+  formatDay={(locale, date) => date.getDate()}
+  tileClassName={({ date, view }) => {
+    if (view === "month") {
+      if (date.getDay() === 0) return "calendar-sunday";
+      if (date.getDay() === 6) return "calendar-saturday";
+    }
+    return null;
+  }}
+/>
             </div>
           </div>
 
@@ -760,28 +767,22 @@ export default function App() {
         
 /* 曜日見出し */
 .react-calendar__month-view__weekdays__weekday--sun abbr {
-  color: #dc2626 !important; /* 日曜：赤 */
-}
-
-.react-calendar__month-view__weekdays__weekday--sat abbr {
-  color: #2563eb !important; /* 土曜：青 */
-}
-
-/* 日付部分 */
-.react-calendar__month-view__days__day--weekend:not(.react-calendar__tile--active) {
-  color: inherit !important;
-}
-
-/* 日曜日（左端） */
-.react-calendar__month-view__days__day:nth-child(7n + 1):not(.react-calendar__tile--active) {
   color: #dc2626 !important;
 }
 
-/* 土曜日（右端） */
-.react-calendar__month-view__days__day:nth-child(7n):not(.react-calendar__tile--active) {
+.react-calendar__month-view__weekdays__weekday--sat abbr {
   color: #2563eb !important;
 }
 
+/* 日曜日 */
+.calendar-sunday:not(.react-calendar__tile--active) {
+  color: #dc2626 !important;
+}
+
+/* 土曜日 */
+.calendar-saturday:not(.react-calendar__tile--active) {
+  color: #2563eb !important;
+}
         .react-calendar__tile {
           padding: 12px 8px !important;
           font-size: 14px !important;
