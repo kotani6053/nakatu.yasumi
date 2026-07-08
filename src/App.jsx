@@ -120,7 +120,7 @@ export default function App() {
   const timeOptions = (() => {
     const arr = [];
     const start = 6 * 60;
-    const end = 22 * 60 + 50;
+    const end = 24 * 60 + 50;
     for (let t = start; t <= end; t += 10) {
       const h = String(Math.floor(t / 60)).padStart(2, "0");
       const m = String(t % 60).padStart(2, "0");
